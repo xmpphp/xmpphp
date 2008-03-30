@@ -57,7 +57,7 @@ class XMLStream {
 	var $lastid = 0;
 
 	function XMLStream($host, $port) {
-		$this->socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+		#$this->socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
 		$this->host = $host;
 		$this->port = $port;
 		#set up the parser
@@ -78,16 +78,17 @@ class XMLStream {
 	}
 
 	function connect() {
-		if(socket_connect($this->socket, $this->host, $this->port)) {
-			socket_write($this->socket, $this->stream_start);
-		}
+		#if(socket_connect($this->socket, $this->host, $this->port)) {
+		#	socket_write($this->socket, $this->stream_start);
+		#}
+		$this->socket = stream_socket_client("tcp://{$this->host}:{$this->port}");
+		$this->send($this->stream_start);
 	}
 
 	function process() {
 		while(!$this->disconnect) {
-			$buff = socket_read($this->socket, 1024);
-			#print $buff;
-			#print "\n*****\n";
+			#$buff = socket_read($this->socket, 1024);
+			$buff = fread($this->socket, 1024);
 			xml_parse($this->parser, $buff, False);
 			# parse whatever we get out of the socket
 		}
@@ -152,7 +153,8 @@ class XMLStream {
 	}
 
 	function send($msg) {
-		socket_write($this->socket, $msg);
+		#socket_write($this->socket, $msg);
+		fwrite($this->socket, $msg);
 	}
 
 	function reset() {
@@ -176,19 +178,23 @@ class XMPP extends XMLStream {
 	var $password;
 	var $resource;
 
-	function XMPP($host, $port, $user, $password, $resource) {
+	function XMPP($host, $port, $user, $password, $resource, $server=Null) {
 		$this->XMLStream($host, $port);
 		$this->user = $user;
 		$this->password = $password;
 		$this->resource = $resource;
-		$this->stream_start = '<stream:stream to="' . $host . '" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client" version="1.0">\n';
+		if(!$server) $server = $host;
+		$this->stream_start = '<stream:stream to="' . $server . '" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client" version="1.0">\n';
 		$this->addHandler('features', 'http://etherx.jabber.org/streams', 'features_handler');
 		$this->addHandler('success', 'urn:ietf:params:xml:ns:xmpp-sasl', 'sasl_success_handler');
 		$this->addHandler('failure', 'urn:ietf:params:xml:ns:xmpp-sasl', 'sasl_failure_handler');
+		$this->addHandler('proceed', 'urn:ietf:params:xml:ns:xmpp-tls', 'tls_proceed_handler');
 	}
 
 	function features_handler($xml) {
-		if($xml->hassub('bind')) {
+		if($xml->hassub('starttls')) {
+			$this->send("<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'><required /></starttls>");
+		} elseif($xml->hassub('bind')) {
 			$id = $this->getId();
 			print "ok, we can bind $id\n";
 			$this->addIdHandler($id, 'resource_bind_handler');
@@ -217,6 +223,12 @@ class XMPP extends XMLStream {
 
 	function session_start_handler($xml) {
 		print "session started\n";
+	}
+
+	function tls_proceed_handler($xml) {
+		print "Starting TLS connection\n";
+		stream_socket_enable_crypto($this->socket, True, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+		$this->reset();
 	}
 }
 
