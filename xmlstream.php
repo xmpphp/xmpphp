@@ -99,7 +99,14 @@ class XMLStream {
 			$updated = stream_select($read, $write, $except, 1);
 			if ($updated > 0) {
 				$buff = fread($this->socket, 1024);
-				if(!$buff and $this->reconnect) $this->doReconnect();
+				if(!$buff) { 
+					if($this->reconnect) {
+						$this->doReconnect();
+					} else {
+						fclose($this->socket);
+						return False;
+					}
+				}
 				$this->log->log("RECV: $buff", LOGGING_VERBOSE);
 				xml_parse($this->parser, $buff, False);
 			}
@@ -116,7 +123,14 @@ class XMLStream {
 			$updated = stream_select($read, $write, $except, 1);
 			if ($updated > 0) {
 				$buff = fread($this->socket, 1024);
-				if(!$buff and $this->reconnect) $this->doReconnect();
+				if(!$buff) { 
+					if($this->reconnect) {
+						$this->doReconnect();
+					} else {
+						fclose($this->socket);
+						return False;
+					}
+				}
 				$this->log->log("RECV: $buff", LOGGING_VERBOSE);
 				xml_parse($this->parser, $buff, False);
 			}
@@ -136,7 +150,14 @@ class XMLStream {
 			$updated = stream_select($read, $write, $except, 1);
 			if ($updated > 0) {
 				$buff = fread($this->socket, 1024);
-				if(!$buff and $this->reconnect) $this->doReconnect();
+				if(!$buff) { 
+					if($this->reconnect) {
+						$this->doReconnect();
+					} else {
+						fclose($this->socket);
+						return False;
+					}
+				}
 				$this->log->log("RECV: $buff", LOGGING_VERBOSE);
 				xml_parse($this->parser, $buff, False);
 			}

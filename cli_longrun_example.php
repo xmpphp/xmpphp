@@ -1,6 +1,6 @@
 <?php
 include("xmpp.php");
-$conn = new XMPP('talk.google.com', 5222, 'user', 'password', 'xmpphp', 'gmail.com', $printlog=True, $loglevel=LOGGING_VERBOSE);
+$conn = new XMPP('talk.google.com', 5222, 'user', 'password', 'xmpphp', 'gmail.com', $printlog=True, $loglevel=LOGGING_INFO);
 $conn->connect();
 while(!$conn->disconnected) {
 	$payloads = $conn->processUntil(array('message', 'presence', 'end_stream', 'session_start'));

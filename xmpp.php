@@ -35,7 +35,7 @@ class XMPP extends XMLStream {
 		$this->password = $password;
 		$this->resource = $resource;
 		if(!$server) $server = $host;
-		$this->stream_start = '<stream:stream to="' . $server . '" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client" version="1.0">\n';
+		$this->stream_start = '<stream:stream to="' . $server . '" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client" version="1.0">';
 		$this->stream_end = '</stream:stream>';
 		$this->addHandler('features', 'http://etherx.jabber.org/streams', 'features_handler');
 		$this->addHandler('success', 'urn:ietf:params:xml:ns:xmpp-sasl', 'sasl_success_handler');
