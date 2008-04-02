@@ -30,7 +30,7 @@ class XMPP extends XMLStream {
 	var $fulljid;
 
 	function XMPP($host, $port, $user, $password, $resource, $server=Null, $printlog=False, $loglevel=Null) {
-		$this->XMLStream($host, $port, $loglevel, $loglevel);
+		$this->XMLStream($host, $port, $printlog, $loglevel);
 		$this->user = $user;
 		$this->password = $password;
 		$this->resource = $resource;

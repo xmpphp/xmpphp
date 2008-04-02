@@ -79,13 +79,13 @@ class XMLStream {
 		$this->disconnected = False;
 		$this->sent_disconnect = False;
 		if($persistent) {
-			$conflag = STREAM_CLIENT_PERSISTENT;
+			$conflag = STREAM_CLIENT_CONNECT | STREAM_CLIENT_PERSISTENT;
 		} else {
 			$conflag = STREAM_CLIENT_CONNECT;
 		}
 		$this->log->log("Connecting to tcp://{$this->host}:{$this->port}");
 		$this->socket = stream_socket_client("tcp://{$this->host}:{$this->port}", $flags=$conflag);
-		stream_set_blocking($this-socket, 1);
+		stream_set_blocking($this->socket, 1);
 		if($sendinit) $this->send($this->stream_start);
 	}
 
@@ -101,7 +101,7 @@ class XMLStream {
 			$except = NULL;
 			$updated = stream_select($read, $write, $except, 1);
 			if ($updated > 0) {
-				$buff = fread($this->socket, 1024);
+				$buff = @fread($this->socket, 1024);
 				if(!$buff) { 
 					if($this->reconnect) {
 						$this->doReconnect();
@@ -125,7 +125,7 @@ class XMLStream {
 			$except = NULL;
 			$updated = stream_select($read, $write, $except, 1);
 			if ($updated > 0) {
-				$buff = fread($this->socket, 1024);
+				$buff = @fread($this->socket, 1024);
 				if(!$buff) { 
 					if($this->reconnect) {
 						$this->doReconnect();
@@ -152,7 +152,7 @@ class XMLStream {
 			$except = NULL;
 			$updated = stream_select($read, $write, $except, 1);
 			if ($updated > 0) {
-				$buff = fread($this->socket, 1024);
+				$buff = @fread($this->socket, 1024);
 				if(!$buff) { 
 					if($this->reconnect) {
 						$this->doReconnect();
