@@ -31,6 +31,7 @@ class XMLStream {
 	var $stream_start = '<stream>';
 	var $stream_end = '</stream';
 	var $disconnected = false;
+	var $sent_disconnect = False;
 	var $ns_map = array();
 	var $current_ns = array();
 	var $xmlobj = Null;
@@ -76,6 +77,7 @@ class XMLStream {
 
 	function connect($persistent=False, $sendinit=True) {
 		$this->disconnected = False;
+		$this->sent_disconnect = False;
 		if($persistent) {
 			$conflag = STREAM_CLIENT_PERSISTENT;
 		} else {
@@ -83,6 +85,7 @@ class XMLStream {
 		}
 		$this->log->log("Connecting to tcp://{$this->host}:{$this->port}");
 		$this->socket = stream_socket_client("tcp://{$this->host}:{$this->port}", $flags=$conflag);
+		stream_set_blocking($this-socket, 1);
 		if($sendinit) $this->send($this->stream_start);
 	}
 
@@ -230,8 +233,11 @@ class XMLStream {
 		}
 		if($this->xml_depth == 0 and !$this->been_reset) {
 			if(!$this->disconnected) {
-				$this->send($this->stream_end);
+				if(!$this->sent_disconnect) {
+					$this->send($this->stream_end);
+				}
 				$this->disconnected = True;
+				$this->sent_disconnect = True;
 				fclose($this->socket);
 				if($this->reconnect) {
 					$this->doReconnect();
@@ -249,6 +255,7 @@ class XMLStream {
 	function disconnect() {
 		$this->reconnect = False;
 		$this->send($this->stream_end);
+		$this->sent_disconnect = True;
 		$this->processUntil('end_stream', 5);
 		$this->disconnected = True;
 	}
