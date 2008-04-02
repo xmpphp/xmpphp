@@ -81,6 +81,7 @@ class XMLStream {
 		#if(socket_connect($this->socket, $this->host, $this->port)) {
 		#	socket_write($this->socket, $this->stream_start);
 		#}
+		print "connecting to tcp://{$this->host}:{$this->port}\n";
 		$this->socket = stream_socket_client("tcp://{$this->host}:{$this->port}");
 		$this->send($this->stream_start);
 	}
@@ -89,9 +90,30 @@ class XMLStream {
 		while(!$this->disconnect) {
 			#$buff = socket_read($this->socket, 1024);
 			$buff = fread($this->socket, 1024);
+			print "RECV: '$buff'\n";
 			xml_parse($this->parser, $buff, False);
+			sleep(1);
 			# parse whatever we get out of the socket
 		}
+	}
+
+	function processTime($timeout=-1) {
+		$start = time();
+		$updated = 'hi';
+		while($timeout == -1 or time() - $start < $timeout) {
+			$timeleft = $timeout - (time() - $start);
+			$read = array($this->socket);
+			$write = NULL;
+			$except = NULL;
+			$updated = stream_select($read, $write, $except, intval($timeleft));
+			if ($updated > 0) {
+				$buff = fread($this->socket, 1024);
+				xml_parse($this->parser, $buff, False);
+			}
+		}
+	}
+
+	function processUntil($mask) {
 	}
 
 	function startXML($parser, $name, $attr) {
@@ -113,7 +135,6 @@ class XMLStream {
 			$ns = $this->ns_map[$name[0]];
 			$name = $name[1];
 		}
-		#print $this->xml_depth . ' ' . $name . ' ' . $ns . ' '  . $attr . "\n";
 		$obj = new XMLObj($name, $ns, $attr);
 		if($this->xml_depth > 1)
 			$this->xmlobj[$this->xml_depth - 1]->subs[] = $obj;
@@ -123,7 +144,6 @@ class XMLStream {
 	function endXML($parser, $name) {
 		$this->xml_depth--;
 		if($this->xml_depth == 1) {
-			#$this->xmlobj[2]->printobj();
 			#clean-up old objects
 			$found = False;
 			foreach($this->nshandlers as $handler) {
@@ -154,6 +174,7 @@ class XMLStream {
 
 	function send($msg) {
 		#socket_write($this->socket, $msg);
+		print "SENT: $msg \n";
 		fwrite($this->socket, $msg);
 	}
 
@@ -228,6 +249,7 @@ class XMPP extends XMLStream {
 	function tls_proceed_handler($xml) {
 		print "Starting TLS connection\n";
 		stream_socket_enable_crypto($this->socket, True, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+		print stream_socket_get_name($this->socket, True) . "\n";
 		$this->reset();
 	}
 }
