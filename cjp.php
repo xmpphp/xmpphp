@@ -1,44 +1,5 @@
 <?php
-
-class XMLObj {
-	var $name;
-	var $ns;
-	var $attrs = array();
-	var $subs = array();
-	var $data = '';
-
-	function XMLObj($name, $ns='', $attrs=array(), $data='') {
-		$this->name = strtolower($name);
-		$this->ns  = $ns;
-		if(is_array($attrs)) {
-			foreach($attrs as $key => $value) {
-				$this->attrs[strtolower($key)] = $value;
-			}
-		}
-		$this->data = $data;
-	}
-
-	function printobj($depth=0) {
-		print str_repeat("\t", $depth) . $this->name . " " . $this->ns . ' ' . $this->data;
-		print "\n";
-		foreach($this->subs as $sub) {
-			$sub->printobj($depth + 1);
-		}
-	}
-
-	function hassub($name) {
-		foreach($this->subs as $sub) {
-			if($sub->name == $name) return True;
-		}
-		return False;
-	}
-
-	function sub($name, $attrs=Null, $ns=Null) {
-		foreach($this->subs as $sub) {
-			if($sub->name == $name) return $sub;
-		}
-	}
-}
+require_once("xmlobj.php");
 
 class XMLStream {
 	var $socket;
@@ -50,11 +11,16 @@ class XMLStream {
 	var $stream_start = '<stream>';
 	var $disconnect = false;
 	var $ns_map = array();
-	var $current_ns;
+	var $current_ns = array();
 	var $xmlobj = Null;
 	var $nshandlers = array();
 	var $idhandlers = array();
+	var $eventhandlers = array();
 	var $lastid = 0;
+	var $default_ns;
+	var $until;
+	var $until_happened = False;
+	var $until_payload = array();
 
 	function XMLStream($host, $port) {
 		#$this->socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
@@ -77,12 +43,21 @@ class XMLStream {
 		$this->nshandlers[] = array($name,$ns,$pointer,$obj);
 	}
 
-	function connect() {
+	function addEventHandler($name, $pointer, $obj) {
+		$this->eventhanders[] = array($name, $pointer, $obj);
+	}
+
+	function connect($persistent=False) {
 		#if(socket_connect($this->socket, $this->host, $this->port)) {
 		#	socket_write($this->socket, $this->stream_start);
 		#}
+		if($persistent) {
+			$conflag = STREAM_CLIENT_PERSISTENT;
+		} else {
+			$conflag = STREAM_CLIENT_CONNECT;
+		}
 		print "connecting to tcp://{$this->host}:{$this->port}\n";
-		$this->socket = stream_socket_client("tcp://{$this->host}:{$this->port}");
+		$this->socket = stream_socket_client("tcp://{$this->host}:{$this->port}", $flags=$conflag);
 		$this->send($this->stream_start);
 	}
 
@@ -90,16 +65,15 @@ class XMLStream {
 		while(!$this->disconnect) {
 			#$buff = socket_read($this->socket, 1024);
 			$buff = fread($this->socket, 1024);
-			print "RECV: '$buff'\n";
+			print "RECV: $buff\n";
 			xml_parse($this->parser, $buff, False);
-			sleep(1);
 			# parse whatever we get out of the socket
 		}
 	}
 
 	function processTime($timeout=-1) {
 		$start = time();
-		$updated = 'hi';
+		$updated = '';
 		while($timeout == -1 or time() - $start < $timeout) {
 			$timeleft = $timeout - (time() - $start);
 			$read = array($this->socket);
@@ -108,20 +82,43 @@ class XMLStream {
 			$updated = stream_select($read, $write, $except, intval($timeleft));
 			if ($updated > 0) {
 				$buff = fread($this->socket, 1024);
+				print "RECV: $buff\n";
 				xml_parse($this->parser, $buff, False);
 			}
 		}
 	}
 
-	function processUntil($mask) {
+	function processUntil($event, $timeout=-1) {
+		$start = time();
+		if(!is_array($event)) $event = array($event);
+		$this->until = $event;
+		$this->until_happened = False;
+		$updated = '';
+		while(!$this->until_happened and (time() - $start < $timeout or $timeout == -1)) {
+			$read = array($this->socket);
+			$write = NULL;
+			$except = NULL;
+			$updated = stream_select($read, $write, $except, 1);
+			if ($updated > 0) {
+				$buff = fread($this->socket, 1024);
+				print "RECV: $buff\n";
+				xml_parse($this->parser, $buff, False);
+			}
+		}
+		$payload = $this->until_payload;
+		$this->until_payload = array();
+		return $payload;
 	}
 
 	function startXML($parser, $name, $attr) {
 		$this->xml_depth++;
 		if(array_key_exists('XMLNS', $attr)) {
-			$this->current_ns = $attr['XMLNS'];
+			$this->current_ns[$this->xml_depth] = $attr['XMLNS'];
+		} else {
+			$this->current_ns[$this->xml_depth] = $this->current_ns[$this->xml_depth - 1];
+			if(!$this->current_ns[$this->xml_depth]) $this->current_ns[$this->xml_depth] = $this->default_ns;
 		}
-		$ns = $this->current_ns;
+		$ns = $this->current_ns[$this->xml_depth];
 		foreach($attr as $key => $value) {
 			if(strstr($key, ":")) {
 				$key = explode(':', $key);
@@ -143,14 +140,16 @@ class XMLStream {
 
 	function endXML($parser, $name) {
 		$this->xml_depth--;
+		print "{$this->xml_depth}: $name\n";
 		if($this->xml_depth == 1) {
 			#clean-up old objects
 			$found = False;
 			foreach($this->nshandlers as $handler) {
-				if($this->xmlobj[2]->name == $handler[0] and $this->xmlobj[2]->ns == $handler[1]) {
+				print $this->xml_depth;
+				print "::::{$this->xmlobj[2]->name}:{$this->xmlobj[2]->ns}\n";
+				if($this->xmlobj[2]->name == $handler[0] and ($this->xmlobj[2]->ns == $handler[1] or (!$handler[1] and $this->xmlobj[2]->ns == $this->default_ns))) {
 					if($handler[3] === Null) $handler[3] = $this;
 					call_user_method($handler[2], $handler[3], $this->xmlobj[2]);
-					break;
 				}
 			}
 			foreach($this->idhandlers as $id => $handler) {
@@ -168,6 +167,23 @@ class XMLStream {
 			}
 		}
 	}
+
+	function event($name, $payload=Null) {
+		print "EVENT: $name\n";
+		foreach($this->eventhandlers as $handler) {
+			print "$name {$handler[0]}\n";
+			if($name == $handler[0]) {
+				if($handler[2] === Null) $handler[2] = $this;
+				call_user_method($handler[1], $handler[2], $payload);
+				print "Called {$handler[1]}\n";
+			}
+		}
+		if(in_array($name, $this->until)) {
+			$this->until_happened = True;
+			$this->until_payload[] = array($name, $payload);
+		}
+	}
+
 	function charXML($parser, $data) {
 		$this->xmlobj[$this->xml_depth]->data = $data;
 	}
@@ -192,67 +208,4 @@ class XMLStream {
 		xml_set_character_data_handler($this->parser, 'charXML');
 	}
 }
-
-class XMPP extends XMLStream {
-	var $server;
-	var $user;
-	var $password;
-	var $resource;
-
-	function XMPP($host, $port, $user, $password, $resource, $server=Null) {
-		$this->XMLStream($host, $port);
-		$this->user = $user;
-		$this->password = $password;
-		$this->resource = $resource;
-		if(!$server) $server = $host;
-		$this->stream_start = '<stream:stream to="' . $server . '" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client" version="1.0">\n';
-		$this->addHandler('features', 'http://etherx.jabber.org/streams', 'features_handler');
-		$this->addHandler('success', 'urn:ietf:params:xml:ns:xmpp-sasl', 'sasl_success_handler');
-		$this->addHandler('failure', 'urn:ietf:params:xml:ns:xmpp-sasl', 'sasl_failure_handler');
-		$this->addHandler('proceed', 'urn:ietf:params:xml:ns:xmpp-tls', 'tls_proceed_handler');
-	}
-
-	function features_handler($xml) {
-		if($xml->hassub('starttls')) {
-			$this->send("<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'><required /></starttls>");
-		} elseif($xml->hassub('bind')) {
-			$id = $this->getId();
-			print "ok, we can bind $id\n";
-			$this->addIdHandler($id, 'resource_bind_handler');
-			$this->send("<iq xmlns=\"jabber:client\" type=\"set\" id=\"$id\"><bind xmlns=\"urn:ietf:params:xml:ns:xmpp-bind\"><resource>{$this->resource}</resource></bind></iq>");
-		} else {
-			print "Attempting Auth...\n";
-			$this->send("<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN'>" . base64_encode("\x00" . $this->user . "\x00" . $this->password) . "</auth>");
-		}
-	}
-
-	function sasl_success_handler($xml) {
-		print "Auth success!\n";
-		$this->reset();
-	}
-	
-	function sasl_failure_handler($xml) {
-		print "Auth failed!\n";
-	}
-
-	function resource_bind_handler($xml) {
-		if($xml->attrs['type'] == 'result') print "Bound to " . $xml->sub('bind')->sub('jid')->data . "\n";
-		$id = $this->getId();
-		$this->addIdHandler($id, 'session_start_handler');
-		$this->send("<iq xmlns='jabber:client' type='set' id='$id'><session xmlns='urn:ietf:params:xml:ns:xmpp-session' /></iq>");
-	}
-
-	function session_start_handler($xml) {
-		print "session started\n";
-	}
-
-	function tls_proceed_handler($xml) {
-		print "Starting TLS connection\n";
-		stream_socket_enable_crypto($this->socket, True, STREAM_CRYPTO_METHOD_TLS_CLIENT);
-		print stream_socket_get_name($this->socket, True) . "\n";
-		$this->reset();
-	}
-}
-
-
 
