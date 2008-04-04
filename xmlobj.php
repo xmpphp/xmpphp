@@ -45,6 +45,23 @@ class XMLObj {
 		}
 	}
 
+	function tostring($str='') {
+		$str .= "<{$this->name} xmlns='{$this->ns}' ";
+		foreach($this->attrs as $key => $value) {
+			if($key != 'xmlns') {
+				$value = htmlentities($value);
+				$str .= "$key='$value' ";
+			}
+		}
+		$str .= ">";
+		foreach($this->subs as $sub) {
+			$str .= $sub->tostring();
+		}
+		$body = htmlentities($this->data);
+		$str .= "$body</{$this->name}>";
+		return $str;
+	}
+
 	function hassub($name) {
 		foreach($this->subs as $sub) {
 			if($sub->name == $name) return True;

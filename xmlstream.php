@@ -40,21 +40,20 @@ class XMLStream {
 	var $eventhandlers = array();
 	var $lastid = 0;
 	var $default_ns;
-	var $until;
+	var $until = '';
 	var $until_happened = False;
 	var $until_payload = array();
 	var $log;
 	var $reconnect = True;
 	var $been_reset = False;
+	var $is_server;
 
-	function XMLStream($host, $port, $log=False, $loglevel=Null) {
-		#$this->socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-		$this->reconnect = True;
+	function XMLStream($host=Null, $port=Null, $log=False, $loglevel=Null, $is_server=False) {
+		$this->reconnect = !$is_server;
+		$this->is_server = $is_server;
 		$this->host = $host;
 		$this->port = $port;
-		#set up the parser
 		$this->setupParser();
-		#set up logger
 		$this->log = new Logging($log, $loglevel);
 	}
 
@@ -67,8 +66,8 @@ class XMLStream {
 		$this->idhandlers[$id] = array($pointer, $obj);
 	}
 
-	function addHandler($name, $ns, $pointer, $obj=Null) {
-		$this->nshandlers[] = array($name,$ns,$pointer,$obj);
+	function addHandler($name, $ns, $pointer, $obj=Null, $depth=1) {
+		$this->nshandlers[] = array($name,$ns,$pointer,$obj, $depth);
 	}
 
 	function addEventHandler($name, $pointer, $obj) {
@@ -116,6 +115,20 @@ class XMLStream {
 		}
 	}
 
+	function read() {
+		$buff = @fread($this->socket, 1024);
+		if(!$buff) { 
+			if($this->reconnect) {
+				$this->doReconnect();
+			} else {
+				fclose($this->socket);
+				return False;
+			}
+		}
+		$this->log->log("RECV: $buff", LOGGING_VERBOSE);
+		xml_parse($this->parser, $buff, False);
+	}
+
 	function processTime($timeout=-1) {
 		$start = time();
 		$updated = '';
@@ -143,10 +156,12 @@ class XMLStream {
 	function processUntil($event, $timeout=-1) {
 		$start = time();
 		if(!is_array($event)) $event = array($event);
-		$this->until = $event;
-		$this->until_happened = False;
+		$this->until[] = $event;
+		end($this->until);
+		$event_key = key($this->until);
+		reset($this->until);
 		$updated = '';
-		while(!$this->disconnected and !$this->until_happened and (time() - $start < $timeout or $timeout == -1)) {
+		while(!$this->disconnected and $this->until[$event_key] and (time() - $start < $timeout or $timeout == -1)) {
 			$read = array($this->socket);
 			$write = NULL;
 			$except = NULL;
@@ -165,8 +180,8 @@ class XMLStream {
 				xml_parse($this->parser, $buff, False);
 			}
 		}
-		$payload = $this->until_payload;
-		$this->until_payload = array();
+		$payload = $this->until_payload[$event_key];
+		unset($this->until_payload[$event_key]);
 		return $payload;
 	}
 
@@ -212,7 +227,12 @@ class XMLStream {
 			#clean-up old objects
 			$found = False;
 			foreach($this->nshandlers as $handler) {
-				if($this->xmlobj[2]->name == $handler[0] and ($this->xmlobj[2]->ns == $handler[1] or (!$handler[1] and $this->xmlobj[2]->ns == $this->default_ns))) {
+				if($handler[4] != 1 and $this->xmlobj[2]->hassub($handler[0])) {
+					$searchxml = $this->xmlobj[2]->sub($handler[0]);
+				} else {
+					$searchxml = $this->xmlobj[2];
+				}
+				if($searchxml->name == $handler[0] and ($searchxml->ns == $handler[1] or (!$handler[1] and $searchxml->ns == $this->default_ns))) {
 					if($handler[3] === Null) $handler[3] = $this;
 					call_user_method($handler[2], $handler[3], $this->xmlobj[2]);
 				}
@@ -230,6 +250,7 @@ class XMLStream {
 				$this->xmlobj = array_slice($this->xmlobj, 0, 1);
 				$this->xmlobj[0]->subs = Null;
 			}
+			unset($this->xmlobj[2]);
 		}
 		if($this->xml_depth == 0 and !$this->been_reset) {
 			if(!$this->disconnected) {
@@ -248,8 +269,11 @@ class XMLStream {
 	}
 
 	function doReconnect() {
-		$this->connect(False, False);
-		$this->reset();
+		if(!$this->is_server) {
+			$this->log->log("Reconnecting...", LOGGING_WARNING);
+			$this->connect(False, False);
+			$this->reset();
+		}
 	}
 
 	function disconnect() {
@@ -268,9 +292,13 @@ class XMLStream {
 				call_user_method($handler[1], $handler[2], $payload);
 			}
 		}
-		if(in_array($name, $this->until)) {
-			$this->until_happened = True;
-			$this->until_payload[] = array($name, $payload);
+		foreach($this->until as $key => $until) {
+			if(is_array($until)) {
+				if(in_array($name, $until)) {
+					$this->until_payload[$key][] = array($name, $payload);
+					$this->until[$key] = False;
+				}
+			}
 		}
 	}
 
@@ -286,14 +314,19 @@ class XMLStream {
 
 	function reset() {
 		$this->xml_depth = 0;
-		$this->xmlobj = Null;
+		unset($this->xmlobj);
 		$this->setupParser();
-		$this->send($this->stream_start);
+		if(!$this->is_server) {
+			$this->send($this->stream_start);
+		}
 		$this->been_reset = True;
 	}
 
 	function setupParser() {
-		$this->parser = xml_parser_create();
+		unset($this->parser);
+		$this->parser = xml_parser_create('UTF-8');
+		xml_parser_set_option($this->parser,XML_OPTION_SKIP_WHITE,1);
+		xml_parser_set_option($this->parser,XML_OPTION_TARGET_ENCODING, "UTF-8");
 		xml_set_object($this->parser, $this);
 		xml_set_element_handler($this->parser, 'startXML', 'endXML');
 		xml_set_character_data_handler($this->parser, 'charXML');
