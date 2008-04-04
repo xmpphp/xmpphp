@@ -218,6 +218,8 @@ class XMLStream {
 	}
 
 	function endXML($parser, $name) {
+		#$this->log->log("Ending $name", LOGGING_DEBUG);
+		#print "$name\n";
 		if($this->been_reset) {
 			$this->been_reset = False;
 			$this->xml_depth = 0;
@@ -234,6 +236,7 @@ class XMLStream {
 				}
 				if($searchxml->name == $handler[0] and ($searchxml->ns == $handler[1] or (!$handler[1] and $searchxml->ns == $this->default_ns))) {
 					if($handler[3] === Null) $handler[3] = $this;
+					$this->log->log("Calling {$handler[2]}", LOGGING_DEBUG);
 					call_user_method($handler[2], $handler[3], $this->xmlobj[2]);
 				}
 			}
@@ -323,7 +326,6 @@ class XMLStream {
 	}
 
 	function setupParser() {
-		unset($this->parser);
 		$this->parser = xml_parser_create('UTF-8');
 		xml_parser_set_option($this->parser,XML_OPTION_SKIP_WHITE,1);
 		xml_parser_set_option($this->parser,XML_OPTION_TARGET_ENCODING, "UTF-8");
