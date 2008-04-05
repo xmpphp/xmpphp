@@ -114,6 +114,7 @@ class XMPP extends XMLStream {
 	
 	function sasl_failure_handler($xml) {
 		$this->log->log("Auth failed!", LOGGING_ERROR);
+		$this->disconnect();
 	}
 
 	function resource_bind_handler($xml) {
