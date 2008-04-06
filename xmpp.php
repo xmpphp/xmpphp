@@ -56,9 +56,9 @@ class XMPP extends XMLStream {
 	}
 
 	function message($to, $body, $type='chat', $subject=Null) {
-		$to = htmlentities($to);
-		$body = htmlentities($body);
-		$subject = htmlentities($subject);
+		$to = htmlspecialchars($to);
+		$body = htmlspecialchars($body);
+		$subject = htmlspecialchars($subject);
 		$out = "<message from='{$this->fulljid}' to='$to' type='$type'>";
 		if($subject) $out .= "<subject>$subject</subject>";
 		$out .= "<body>$body</body></message>";
@@ -66,8 +66,8 @@ class XMPP extends XMLStream {
 	}
 
 	function presence($status=Null, $show='available', $to=Null) {
-		$to = htmlentities($to);
-		$status = htmlentities($status);
+		$to = htmlspecialchars($to);
+		$status = htmlspecialchars($status);
 		if($show == 'unavailable') $type = 'unavailable';
 		$out = "<presence";
 		if($to) $out .= " to='$to'";

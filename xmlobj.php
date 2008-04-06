@@ -49,7 +49,7 @@ class XMLObj {
 		$str .= "<{$this->name} xmlns='{$this->ns}' ";
 		foreach($this->attrs as $key => $value) {
 			if($key != 'xmlns') {
-				$value = htmlentities($value);
+				$value = htmlspecialchars($value);
 				$str .= "$key='$value' ";
 			}
 		}
@@ -57,7 +57,7 @@ class XMLObj {
 		foreach($this->subs as $sub) {
 			$str .= $sub->tostring();
 		}
-		$body = htmlentities($this->data);
+		$body = htmlspecialchars($this->data);
 		$str .= "$body</{$this->name}>";
 		return $str;
 	}
