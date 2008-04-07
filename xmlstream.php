@@ -84,6 +84,10 @@ class XMLStream {
 		}
 		$this->log->log("Connecting to tcp://{$this->host}:{$this->port}");
 		$this->socket = stream_socket_client("tcp://{$this->host}:{$this->port}", $flags=$conflag);
+		if(!$this->socket) {
+			$this->log->log("Could not connect.", LOGGING_ERROR);
+			$this->disconnected = True;
+		}
 		stream_set_blocking($this->socket, 1);
 		if($sendinit) $this->send($this->stream_start);
 	}
