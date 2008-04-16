@@ -235,17 +235,17 @@ class XMLStream {
 			foreach($this->nshandlers as $handler) {
 				if($handler[4] != 1 and $this->xmlobj[2]->hassub($handler[0])) {
 					$searchxml = $this->xmlobj[2]->sub($handler[0]);
-				} else {
+				} elseif(is_array($this->xmlobj) and array_key_exists(2, $this->xmlobj)) {
 					$searchxml = $this->xmlobj[2];
 				}
-				if($searchxml->name == $handler[0] and ($searchxml->ns == $handler[1] or (!$handler[1] and $searchxml->ns == $this->default_ns))) {
+				if($searchxml !== Null and $searchxml->name == $handler[0] and ($searchxml->ns == $handler[1] or (!$handler[1] and $searchxml->ns == $this->default_ns))) {
 					if($handler[3] === Null) $handler[3] = $this;
 					$this->log->log("Calling {$handler[2]}", LOGGING_DEBUG);
 					call_user_method($handler[2], $handler[3], $this->xmlobj[2]);
 				}
 			}
 			foreach($this->idhandlers as $id => $handler) {
-				if($this->xmlobj[2]->attrs['id'] == $id) {
+				if(array_key_exists('id', $this->xmlobj[2]->attrs) and $this->xmlobj[2]->attrs['id'] == $id) {
 					if($handler[1] === Null) $handler[1] = $this;
 					call_user_method($handler[0], $handler[1], $this->xmlobj[2]);
 					#id handlers are only used once
@@ -310,7 +310,8 @@ class XMLStream {
 	}
 
 	function charXML($parser, $data) {
-		$this->xmlobj[$this->xml_depth]->data .= $data;
+		if(array_key_exists($this->xml_depth, $this->xmlobj))
+			$this->xmlobj[$this->xml_depth]->data .= $data;
 	}
 
 	function send($msg) {
@@ -322,6 +323,7 @@ class XMLStream {
 	function reset() {
 		$this->xml_depth = 0;
 		unset($this->xmlobj);
+		$this->xmlobj = array();
 		$this->setupParser();
 		if(!$this->is_server) {
 			$this->send($this->stream_start);
