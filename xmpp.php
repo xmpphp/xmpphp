@@ -28,6 +28,7 @@ class XMPP extends XMLStream {
 	var $password;
 	var $resource;
 	var $fulljid;
+	var $authed;
 
 	function XMPP($host, $port, $user, $password, $resource, $server=Null, $printlog=False, $loglevel=Null) {
 		$this->XMLStream($host, $port, $printlog, $loglevel);
@@ -44,6 +45,7 @@ class XMPP extends XMLStream {
 		$this->default_ns = 'jabber:client';
 		$this->addHandler('message', 'jabber:client', 'message_handler');
 		$this->addHandler('presence', 'jabber:client', 'presence_handler');
+		$this->authed = False;
 	}
 
 	function message_handler($xml) {
@@ -109,6 +111,7 @@ class XMPP extends XMLStream {
 
 	function sasl_success_handler($xml) {
 		$this->log->log("Auth success!");
+		$this->authed = True;
 		$this->reset();
 	}
 	
@@ -134,7 +137,7 @@ class XMPP extends XMLStream {
 
 	function tls_proceed_handler($xml) {
 		$this->log->log("Starting TLS encryption");
-		stream_socket_enable_crypto($this->socket, True, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+		stream_socket_enable_crypto($this->socket, True, STREAM_CRYPTO_METHOD_SSLv23_CLIENT);
 		$this->reset();
 	}
 }
