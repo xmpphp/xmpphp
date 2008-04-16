@@ -184,7 +184,11 @@ class XMLStream {
 				xml_parse($this->parser, $buff, False);
 			}
 		}
-		$payload = $this->until_payload[$event_key];
+		if(array_key_exists($event_key, $this->until_payload)) {
+			$payload = $this->until_payload[$event_key];
+		} else {
+			$payload = array();
+		}
 		unset($this->until_payload[$event_key]);
 		return $payload;
 	}
@@ -317,7 +321,7 @@ class XMLStream {
 	function send($msg) {
 		#socket_write($this->socket, $msg);
 		$this->log->log("SENT: $msg", LOGGING_VERBOSE);
-		fwrite($this->socket, $msg);
+		@fwrite($this->socket, $msg);
 	}
 
 	function reset() {

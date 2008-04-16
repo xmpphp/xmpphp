@@ -46,6 +46,7 @@ class XMPP extends XMLStream {
 		$this->addHandler('message', 'jabber:client', 'message_handler');
 		$this->addHandler('presence', 'jabber:client', 'presence_handler');
 		$this->authed = False;
+		$this->use_encryption = True;
 	}
 
 	function message_handler($xml) {
@@ -68,6 +69,7 @@ class XMPP extends XMLStream {
 	}
 
 	function presence($status=Null, $show='available', $to=Null) {
+		$type = '';
 		$to = htmlspecialchars($to);
 		$status = htmlspecialchars($status);
 		if($show == 'unavailable') $type = 'unavailable';
@@ -86,18 +88,16 @@ class XMPP extends XMLStream {
 	}
 
 	function presence_handler($xml) {
-		$payload['type'] = $xml->attrs['type'];
-		if(!$payload['type']) $payload['type'] = 'available';
-		$payload['show'] = $xml->sub('show')->data;
-		if(!$payload['show']) $payload['show'] = $payload['type'];
+		$payload['type'] = (isset($xml->attrs['type'])) ? $xml->attrs['type'] : 'available';
+		$payload['show'] = (isset($xml->sub('show')->data)) ? $xml->sub('show')->data : $payload['type'];
 		$payload['from'] = $xml->attrs['from'];
-		$payload['status'] = $xml->sub('status')->data;
+		$payload['status'] = (isset($xml->sub('status')->data)) ? $xml->sub('status')->data : '';
 		$this->log->log("Presence: {$payload['from']} [{$payload['show']}] {$payload['status']}", LOGGING_DEBUG);
 		$this->event('presence', $payload);
 	}
 
 	function features_handler($xml) {
-		if($xml->hassub('starttls')) {
+		if($xml->hassub('starttls') and $this->use_encryption) {
 			$this->send("<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'><required /></starttls>");
 		} elseif($xml->hassub('bind')) {
 			$id = $this->getId();
