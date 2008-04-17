@@ -51,7 +51,7 @@ class XMPP extends XMLStream {
 
 	function message_handler($xml) {
 		$payload['type'] = $xml->attrs['type'];
-		if(!$paytload['type']) $payload['type'] = 'chat';
+		if(!$payload['type']) $payload['type'] = 'chat';
 		$payload['from'] = $xml->attrs['from'];
 		$payload['body'] = $xml->sub('body')->data;
 		$this->log->log("Message: {$xml->sub('body')->data}", LOGGING_DEBUG);
