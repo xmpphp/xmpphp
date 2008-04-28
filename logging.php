@@ -58,5 +58,3 @@ class Logging {
 		if($clear) $this->data = array();
 	}
 }
-
-?>

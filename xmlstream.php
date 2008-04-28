@@ -355,4 +355,3 @@ class XMLStream {
 		xml_set_character_data_handler($this->parser, 'charXML');
 	}
 }
-

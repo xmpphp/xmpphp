@@ -154,4 +154,3 @@ class XMPP extends XMLStream {
 		$this->reset();
 	}
 }
-?>
