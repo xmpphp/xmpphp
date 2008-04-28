@@ -19,34 +19,41 @@ along with XMPPHP; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-define('LOGGING_ERROR', 0);
-define('LOGGING_WARNING', 1);
-define('LOGGING_INFO', 2);
-define('LOGGING_DEBUG', 3);
-define('LOGGING_VERBOSE', 4);
 
 class Logging {
-	var $data = array();
-	var $names = array();
-	var $runlevel;
-	var $printout;
+    
+    const LOG_ERROR   = 0;
+    const LOG_WARNING = 1;
+    const LOG_INFO    = 2;
+    const LOG_DEBUG   = 3;
+    const LOG_VERBOSE = 4;
+    
+	protected $data = array();
+	protected $names = array('ERROR', 'WARNING', 'INFO', 'DEBUG', 'VERBOSE');
+	protected $runlevel;
+	protected $printout;
 
-	function Logging($printout = False, $runlevel=LOGGING_INFO) {
-		$this->names = array('ERROR  ', 'WARNING', 'INFO   ', 'DEBUG  ', 'VERBOSE');
+	/**
+	 * Constructor
+	 *
+	 * @param boolean $printout
+	 * @param string  $runlevel
+	 */
+	public function __construct($printout = false, $runlevel = self::LOG_INFO) {
 		$this->runlevel = $runlevel;
 		$this->printout = $printout;
 	}
 
-	function log($msg, $runlevel=Null) {
-		if($runlevel === Null) $runlevel = LOGGING_INFO;
-		$data[] = array($this->runlevel, $msg);
-		if($this->printout and $runlevel <= $this->runlevel) print "{$this->names[$runlevel]}: $msg\n";
+	public function log($msg, $runlevel = null) {
+		if($runlevel === null) $runlevel = self::LOG_INFO;
+		$this->data[] = array($this->runlevel, $msg);
+		if($this->printout and $runlevel <= $this->runlevel) echo "{$this->names[$runlevel]}: $msg\n";
 	}
 
-	function printout($clear=True, $runlevel=Null) {
-		if(!$runlevel) $runlevel = $this->runlevel;
+	public function printout($clear = true, $runlevel = null) {
+		if($runlevel === null) $runlevel = $this->runlevel;
 		foreach($this->data as $data) {
-			if($runlevel <= $data[0]) print "{$this->names[$runlevel]}: $data[1]\n";
+			if($runlevel <= $data[0]) echo "{$this->names[$runlevel]}: $data[1]\n";
 		}
 		if($clear) $this->data = array();
 	}

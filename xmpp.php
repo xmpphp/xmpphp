@@ -18,20 +18,30 @@ You should have received a copy of the GNU General Public License
 along with XMPPHP; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-require_once("xmlobj.php");
 require_once("xmlstream.php");
-require_once("logging.php");
 
 class XMPP extends XMLStream {
-	var $server;
-	var $user;
-	var $password;
-	var $resource;
-	var $fulljid;
-	var $authed;
+	protected $server;
+	protected $user;
+	protected $password;
+	protected $resource;
+	protected $fulljid;
+	protected $authed;
 
-	function XMPP($host, $port, $user, $password, $resource, $server=Null, $printlog=False, $loglevel=Null) {
-		$this->XMLStream($host, $port, $printlog, $loglevel);
+	/**
+	 * Constructor
+	 *
+	 * @param string  $host
+	 * @param integer $port
+	 * @param string  $user
+	 * @param string  $password
+	 * @param string  $resource
+	 * @param string  $server
+	 * @param boolean $printlog
+	 * @param string  $loglevel
+	 */
+	public function __construct($host, $port, $user, $password, $resource, $server = null, $printlog = false, $loglevel = null) {
+		parent::__construct($host, $port, $printlog, $loglevel);
 		$this->user = $user;
 		$this->password = $password;
 		$this->resource = $resource;
@@ -45,20 +55,23 @@ class XMPP extends XMLStream {
 		$this->default_ns = 'jabber:client';
 		$this->addHandler('message', 'jabber:client', 'message_handler');
 		$this->addHandler('presence', 'jabber:client', 'presence_handler');
-		$this->authed = False;
-		$this->use_encryption = True;
+		$this->authed = false;
+		$this->use_encryption = true;
 	}
 
-	function message_handler($xml) {
-		$payload['type'] = $xml->attrs['type'];
-		if(!$payload['type']) $payload['type'] = 'chat';
+	public function message_handler($xml) {
+	    if(isset($xml->attrs['type'])) {
+		    $payload['type'] = $xml->attrs['type'];
+	    } else {
+		    $payload['type'] = 'chat';
+	    }
 		$payload['from'] = $xml->attrs['from'];
 		$payload['body'] = $xml->sub('body')->data;
-		$this->log->log("Message: {$xml->sub('body')->data}", LOGGING_DEBUG);
+		$this->log->log("Message: {$xml->sub('body')->data}", Logging::LOG_DEBUG);
 		$this->event('message', $payload);
 	}
 
-	function message($to, $body, $type='chat', $subject=Null) {
+	public function message($to, $body, $type = 'chat', $subject = null) {
 		$to = htmlspecialchars($to);
 		$body = htmlspecialchars($body);
 		$subject = htmlspecialchars($subject);
@@ -68,7 +81,7 @@ class XMPP extends XMLStream {
 		$this->send($out);
 	}
 
-	function presence($status=Null, $show='available', $to=Null) {
+	public function presence($status = null, $show = 'available', $to = null) {
 		$type = '';
 		$to = htmlspecialchars($to);
 		$status = htmlspecialchars($status);
@@ -87,16 +100,16 @@ class XMPP extends XMLStream {
 		$this->send($out);
 	}
 
-	function presence_handler($xml) {
+	public function presence_handler($xml) {
 		$payload['type'] = (isset($xml->attrs['type'])) ? $xml->attrs['type'] : 'available';
 		$payload['show'] = (isset($xml->sub('show')->data)) ? $xml->sub('show')->data : $payload['type'];
 		$payload['from'] = $xml->attrs['from'];
 		$payload['status'] = (isset($xml->sub('status')->data)) ? $xml->sub('status')->data : '';
-		$this->log->log("Presence: {$payload['from']} [{$payload['show']}] {$payload['status']}", LOGGING_DEBUG);
+		$this->log->log("Presence: {$payload['from']} [{$payload['show']}] {$payload['status']}", Logging::LOG_DEBUG);
 		$this->event('presence', $payload);
 	}
 
-	function features_handler($xml) {
+	public function features_handler($xml) {
 		if($xml->hassub('starttls') and $this->use_encryption) {
 			$this->send("<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'><required /></starttls>");
 		} elseif($xml->hassub('bind')) {
@@ -109,18 +122,18 @@ class XMPP extends XMLStream {
 		}
 	}
 
-	function sasl_success_handler($xml) {
+	public function sasl_success_handler($xml) {
 		$this->log->log("Auth success!");
-		$this->authed = True;
+		$this->authed = true;
 		$this->reset();
 	}
 	
-	function sasl_failure_handler($xml) {
-		$this->log->log("Auth failed!", LOGGING_ERROR);
+	public function sasl_failure_handler($xml) {
+		$this->log->log("Auth failed!", Logging::LOG_ERROR);
 		$this->disconnect();
 	}
 
-	function resource_bind_handler($xml) {
+	public function resource_bind_handler($xml) {
 		if($xml->attrs['type'] == 'result') {
 			$this->log->log("Bound to " . $xml->sub('bind')->sub('jid')->data);
 			$this->fulljid = $xml->sub('bind')->sub('jid')->data;
@@ -130,14 +143,14 @@ class XMPP extends XMLStream {
 		$this->send("<iq xmlns='jabber:client' type='set' id='$id'><session xmlns='urn:ietf:params:xml:ns:xmpp-session' /></iq>");
 	}
 
-	function session_start_handler($xml) {
+	public function session_start_handler($xml) {
 		$this->log->log("Session started");
 		$this->event('session_start');
 	}
 
-	function tls_proceed_handler($xml) {
+	public function tls_proceed_handler($xml) {
 		$this->log->log("Starting TLS encryption");
-		stream_socket_enable_crypto($this->socket, True, STREAM_CRYPTO_METHOD_SSLv23_CLIENT);
+		stream_socket_enable_crypto($this->socket, true, STREAM_CRYPTO_METHOD_SSLv23_CLIENT);
 		$this->reset();
 	}
 }

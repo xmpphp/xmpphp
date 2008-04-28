@@ -20,16 +20,24 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 class XMLObj {
-	var $name;
-	var $ns;
-	var $attrs = array();
-	var $subs = array();
-	var $data = '';
+	public $name;
+	public $ns;
+	public $attrs = array();
+	public $subs = array();
+	public $data = '';
 
-	function XMLObj($name, $ns='', $attrs=array(), $data='') {
+	/**
+	 * Constructor
+	 *
+	 * @param string $name
+	 * @param string $ns
+	 * @param array  $attrs
+	 * @param string $data
+	 */
+	public function __construct($name, $ns = '', $attrs = array(), $data = '') {
 		$this->name = strtolower($name);
-		$this->ns  = $ns;
-		if(is_array($attrs)) {
+		$this->ns   = $ns;
+		if(is_array($attrs) && count($attrs)) {
 			foreach($attrs as $key => $value) {
 				$this->attrs[strtolower($key)] = $value;
 			}
@@ -37,15 +45,15 @@ class XMLObj {
 		$this->data = $data;
 	}
 
-	function printobj($depth=0) {
+	public function printObj($depth = 0) {
 		print str_repeat("\t", $depth) . $this->name . " " . $this->ns . ' ' . $this->data;
 		print "\n";
 		foreach($this->subs as $sub) {
-			$sub->printobj($depth + 1);
+			$sub->printObj($depth + 1);
 		}
 	}
 
-	function tostring($str='') {
+	public function toString($str = '') {
 		$str .= "<{$this->name} xmlns='{$this->ns}' ";
 		foreach($this->attrs as $key => $value) {
 			if($key != 'xmlns') {
@@ -55,21 +63,21 @@ class XMLObj {
 		}
 		$str .= ">";
 		foreach($this->subs as $sub) {
-			$str .= $sub->tostring();
+			$str .= $sub->toString();
 		}
 		$body = htmlspecialchars($this->data);
 		$str .= "$body</{$this->name}>";
 		return $str;
 	}
 
-	function hassub($name) {
+	public function hasSub($name) {
 		foreach($this->subs as $sub) {
-			if($sub->name == $name) return True;
+			if($sub->name == $name) return true;
 		}
 		return False;
 	}
 
-	function sub($name, $attrs=Null, $ns=Null) {
+	public function sub($name, $attrs = null, $ns = null) {
 		foreach($this->subs as $sub) {
 			if($sub->name == $name) return $sub;
 		}

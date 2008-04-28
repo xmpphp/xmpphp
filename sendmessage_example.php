@@ -1,4 +1,8 @@
 <?php
+
+// activate full error reporting
+error_reporting(E_ALL & E_STRICT);
+
 include("xmpp.php");
 $conn = new XMPP('talk.google.com', 5222, 'username', 'password', 'xmpphp', 'gmail.com', $printlog=False, $loglevel=LOGGING_INFO);
 $conn->connect();
