@@ -29,7 +29,7 @@ class XMLStream {
 	protected $host;
 	protected $port;
 	protected $stream_start = '<stream>';
-	protected $stream_end = '</stream';
+	protected $stream_end = '</stream>';
 	public $disconnected = false;
 	protected $sent_disconnect = false;
 	protected $ns_map = array();
