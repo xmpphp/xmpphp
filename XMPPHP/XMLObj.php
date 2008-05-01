@@ -19,11 +19,40 @@ along with XMPPHP; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-class XMLObj {
+class XMPPHP_XMLObj {
+    /**
+     * Tag name
+     *
+     * @var string
+     */
 	public $name;
+    
+    /**
+     * Namespace
+     *
+     * @var string
+     */
 	public $ns;
+    
+    /**
+     * Attributes
+     *
+     * @var array
+     */
 	public $attrs = array();
+    
+    /**
+     * Subs?
+     *
+     * @var array
+     */
 	public $subs = array();
+    
+    /**
+     * Node data
+     * 
+     * @var string
+     */
 	public $data = '';
 
 	/**
@@ -45,6 +74,11 @@ class XMLObj {
 		$this->data = $data;
 	}
 
+    /**
+     * Dump this XML Object to output.
+     *
+     * @param integer $depth
+     */
 	public function printObj($depth = 0) {
 		print str_repeat("\t", $depth) . $this->name . " " . $this->ns . ' ' . $this->data;
 		print "\n";
@@ -53,6 +87,11 @@ class XMLObj {
 		}
 	}
 
+    /**
+     * Return this XML Object in xml notation
+     *
+     * @param string $str
+     */
 	public function toString($str = '') {
 		$str .= "<{$this->name} xmlns='{$this->ns}' ";
 		foreach($this->attrs as $key => $value) {
@@ -70,16 +109,31 @@ class XMLObj {
 		return $str;
 	}
 
+    /**
+     * Has this XML Object the given sub?
+     * 
+     * @param string $name
+     * @return boolean
+     */
 	public function hasSub($name) {
 		foreach($this->subs as $sub) {
 			if($sub->name == $name) return true;
 		}
-		return False;
+		return false;
 	}
 
+    /**
+     * Return a sub
+     *
+     * @param string $name
+     * @param string $attrs
+     * @param string $ns
+     */
 	public function sub($name, $attrs = null, $ns = null) {
 		foreach($this->subs as $sub) {
-			if($sub->name == $name) return $sub;
+			if($sub->name == $name) {
+                return $sub;
+            }
 		}
 	}
 }

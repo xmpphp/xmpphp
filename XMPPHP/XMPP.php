@@ -18,9 +18,10 @@ You should have received a copy of the GNU General Public License
 along with XMPPHP; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-require_once("xmlstream.php");
 
-class XMPP extends XMLStream {
+require_once("XMLStream.php");
+
+class XMPPHP_XMPP extends XMPPHP_XMLStream {
 	protected $server;
 	protected $user;
 	protected $password;
@@ -42,24 +43,80 @@ class XMPP extends XMLStream {
 	 */
 	public function __construct($host, $port, $user, $password, $resource, $server = null, $printlog = false, $loglevel = null) {
 		parent::__construct($host, $port, $printlog, $loglevel);
-		$this->user = $user;
+		
+		$this->user     = $user;
 		$this->password = $password;
 		$this->resource = $resource;
 		if(!$server) $server = $host;
+		
 		$this->stream_start = '<stream:stream to="' . $server . '" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client" version="1.0">';
 		$this->stream_end = '</stream:stream>';
 		$this->addHandler('features', 'http://etherx.jabber.org/streams', 'features_handler');
 		$this->addHandler('success', 'urn:ietf:params:xml:ns:xmpp-sasl', 'sasl_success_handler');
 		$this->addHandler('failure', 'urn:ietf:params:xml:ns:xmpp-sasl', 'sasl_failure_handler');
 		$this->addHandler('proceed', 'urn:ietf:params:xml:ns:xmpp-tls', 'tls_proceed_handler');
-		$this->default_ns = 'jabber:client';
 		$this->addHandler('message', 'jabber:client', 'message_handler');
 		$this->addHandler('presence', 'jabber:client', 'presence_handler');
-		$this->authed = false;
+        
+		$this->default_ns     = 'jabber:client';
+		$this->authed         = false;
 		$this->use_encryption = true;
 	}
 
-	public function message_handler($xml) {
+    /**
+     * Send XMPP Message
+     *
+     * @param string $to
+     * @param string $body
+     * @param string $type
+     * @param string $subject
+     */
+	public function message($to, $body, $type = 'chat', $subject = null) {
+        $to      = htmlspecialchars($to);
+        $body    = htmlspecialchars($body);
+        $subject = htmlspecialchars($subject);
+        
+        $out = "<message from='{$this->fulljid}' to='$to' type='$type'>";
+        if($subject) $out .= "<subject>$subject</subject>";
+        $out .= "<body>$body</body></message>";
+        
+        $this->send($out);
+    }
+
+    /**
+     * Set Presence
+     *
+     * @param string $status
+     * @param string $show
+     * @param string $to
+     */
+    public function presence($status = null, $show = 'available', $to = null) {
+        $type   = '';
+        $to     = htmlspecialchars($to);
+        $status = htmlspecialchars($status);
+        if($show == 'unavailable') $type = 'unavailable';
+        
+        $out = "<presence";
+        if($to) $out .= " to='$to'";
+        if($type) $out .= " type='$type'";
+        if($show == 'available' and !$status) {
+            $out .= "/>";
+        } else {
+            $out .= ">";
+            if($show != 'available') $out .= "<show>$show</show>";
+            if($status) $out .= "<status>$status</status>";
+            $out .= "</presence>";
+        }
+        
+        $this->send($out);
+    }
+
+	/**
+	 * Message handler
+	 *
+	 * @param string $xml
+	 */
+    public function message_handler($xml) {
 	    if(isset($xml->attrs['type'])) {
 		    $payload['type'] = $xml->attrs['type'];
 	    } else {
@@ -67,52 +124,33 @@ class XMPP extends XMLStream {
 	    }
 		$payload['from'] = $xml->attrs['from'];
 		$payload['body'] = $xml->sub('body')->data;
-		$this->log->log("Message: {$xml->sub('body')->data}", Logging::LOG_DEBUG);
+		$this->log->log("Message: {$xml->sub('body')->data}", XMPPHP_Log::LEVEL_DEBUG);
 		$this->event('message', $payload);
 	}
 
-	public function message($to, $body, $type = 'chat', $subject = null) {
-		$to = htmlspecialchars($to);
-		$body = htmlspecialchars($body);
-		$subject = htmlspecialchars($subject);
-		$out = "<message from='{$this->fulljid}' to='$to' type='$type'>";
-		if($subject) $out .= "<subject>$subject</subject>";
-		$out .= "<body>$body</body></message>";
-		$this->send($out);
-	}
-
-	public function presence($status = null, $show = 'available', $to = null) {
-		$type = '';
-		$to = htmlspecialchars($to);
-		$status = htmlspecialchars($status);
-		if($show == 'unavailable') $type = 'unavailable';
-		$out = "<presence";
-		if($to) $out .= " to='$to'";
-		if($type) $out .= " type='$type'";
-		if($show == 'available' and !$status) {
-			$out .= "/>";
-		} else {
-			$out .= ">";
-			if($show != 'available') $out .= "<show>$show</show>";
-			if($status) $out .= "<status>$status</status>";
-			$out .= "</presence>";
-		}
-		$this->send($out);
-	}
-
+    /**
+     * Presence handler
+     *
+     * @param string $xml
+     */
 	public function presence_handler($xml) {
 		$payload['type'] = (isset($xml->attrs['type'])) ? $xml->attrs['type'] : 'available';
 		$payload['show'] = (isset($xml->sub('show')->data)) ? $xml->sub('show')->data : $payload['type'];
 		$payload['from'] = $xml->attrs['from'];
 		$payload['status'] = (isset($xml->sub('status')->data)) ? $xml->sub('status')->data : '';
-		$this->log->log("Presence: {$payload['from']} [{$payload['show']}] {$payload['status']}", Logging::LOG_DEBUG);
+		$this->log->log("Presence: {$payload['from']} [{$payload['show']}] {$payload['status']}",  XMPPHP_Log::LEVEL_DEBUG);
 		$this->event('presence', $payload);
 	}
 
+    /**
+     * Features handler
+     *
+     * @param string $xml
+     */
 	public function features_handler($xml) {
-		if($xml->hassub('starttls') and $this->use_encryption) {
+		if($xml->hasSub('starttls') and $this->use_encryption) {
 			$this->send("<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'><required /></starttls>");
-		} elseif($xml->hassub('bind')) {
+		} elseif($xml->hasSub('bind')) {
 			$id = $this->getId();
 			$this->addIdHandler($id, 'resource_bind_handler');
 			$this->send("<iq xmlns=\"jabber:client\" type=\"set\" id=\"$id\"><bind xmlns=\"urn:ietf:params:xml:ns:xmpp-bind\"><resource>{$this->resource}</resource></bind></iq>");
@@ -122,17 +160,32 @@ class XMPP extends XMLStream {
 		}
 	}
 
+    /**
+     * SASL success handler
+     *
+     * @param string $xml
+     */
 	public function sasl_success_handler($xml) {
 		$this->log->log("Auth success!");
 		$this->authed = true;
 		$this->reset();
 	}
 	
+    /**
+     * SASL feature handler
+     *
+     * @param string $xml
+     */
 	public function sasl_failure_handler($xml) {
-		$this->log->log("Auth failed!", Logging::LOG_ERROR);
+		$this->log->log("Auth failed!",  XMPPHP_Log::LEVEL_ERROR);
 		$this->disconnect();
 	}
 
+    /**
+     * Resource bind handler
+     *
+     * @param string $xml
+     */
 	public function resource_bind_handler($xml) {
 		if($xml->attrs['type'] == 'result') {
 			$this->log->log("Bound to " . $xml->sub('bind')->sub('jid')->data);
@@ -143,11 +196,21 @@ class XMPP extends XMLStream {
 		$this->send("<iq xmlns='jabber:client' type='set' id='$id'><session xmlns='urn:ietf:params:xml:ns:xmpp-session' /></iq>");
 	}
 
+    /**
+     * Session start handler
+     *
+     * @param string $xml
+     */
 	public function session_start_handler($xml) {
 		$this->log->log("Session started");
 		$this->event('session_start');
 	}
 
+    /**
+     * TLS proceed handler
+     *
+     * @param string $xml
+     */
 	public function tls_proceed_handler($xml) {
 		$this->log->log("Starting TLS encryption");
 		stream_socket_enable_crypto($this->socket, true, STREAM_CRYPTO_METHOD_SSLv23_CLIENT);

@@ -3,10 +3,11 @@
 // activate full error reporting
 error_reporting(E_ALL & E_STRICT);
 
-include("xmpp.php");
-$conn = new XMPP('talk.google.com', 5222, 'user', 'password', 'xmpphp', 'gmail.com', $printlog=True, $loglevel=Logging::LOG_INFO);
+include("XMPPHP/XMPP.php");
+//$conn = new XMPPHP_XMPP('talk.google.com', 5222, 'user', 'password', 'xmpphp', 'gmail.com', $printlog=true, $loglevel=Logging::LEVEL_INFO);
+$conn = new XMPPHP_XMPP('jabber.wentz.it', 5222, 'dev', 'd3vd3v', 'xmpphp', 'jabber.wentz.it', $printlog=true, $loglevel=XMPPHP_Log::LEVEL_VERBOSE);
 $conn->connect();
-while(!$conn->disconnected) {
+while(!$conn->isDisconnected()) {
 	$payloads = $conn->processUntil(array('message', 'presence', 'end_stream', 'session_start'));
 	foreach($payloads as $event) {
 		$pl = $event[1];
@@ -25,10 +26,9 @@ while(!$conn->disconnected) {
 				print "Presence: {$pl['from']} [{$pl['show']}] {$pl['status']}\n";
 			break;
 			case 'session_start':
+			    print "Session Start\n";
 				$conn->presence($status="Cheese!");
 			break;
 		}
 	}
 }
-
-?>
