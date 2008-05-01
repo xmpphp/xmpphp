@@ -4,8 +4,7 @@
 error_reporting(E_ALL & E_STRICT);
 
 include("XMPPHP/XMPP.php");
-//$conn = new XMPPHP_XMPP('talk.google.com', 5222, 'user', 'password', 'xmpphp', 'gmail.com', $printlog=true, $loglevel=Logging::LEVEL_INFO);
-$conn = new XMPPHP_XMPP('jabber.wentz.it', 5222, 'dev', 'd3vd3v', 'xmpphp', 'jabber.wentz.it', $printlog=true, $loglevel=XMPPHP_Log::LEVEL_VERBOSE);
+$conn = new XMPPHP_XMPP('talk.google.com', 5222, 'user', 'password', 'xmpphp', 'gmail.com', $printlog=true, $loglevel=Logging::LEVEL_INFO);
 $conn->connect();
 while(!$conn->isDisconnected()) {
 	$payloads = $conn->processUntil(array('message', 'presence', 'end_stream', 'session_start'));
