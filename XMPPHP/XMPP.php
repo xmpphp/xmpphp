@@ -27,7 +27,9 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 	protected $password;
 	protected $resource;
 	protected $fulljid;
+	protected $basejid;
 	protected $authed;
+	public $auto_subscribe = False;
 
 	/**
 	 * Constructor
@@ -48,7 +50,8 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 		$this->password = $password;
 		$this->resource = $resource;
 		if(!$server) $server = $host;
-		
+		$this->basejid = $this->user . '@' . $this->host;
+
 		$this->stream_start = '<stream:stream to="' . $server . '" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client" version="1.0">';
 		$this->stream_end = '</stream:stream>';
 		$this->addHandler('features', 'http://etherx.jabber.org/streams', 'features_handler');
@@ -61,6 +64,13 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 		$this->default_ns     = 'jabber:client';
 		$this->authed         = false;
 		$this->use_encryption = true;
+	}
+
+	/**
+	 * Turn on auto-authorization of subscription requests.
+	 */
+	public function autoSubscribe() {
+		$this->auto_subscribe = true;
 	}
 
     /**
@@ -139,7 +149,14 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 		$payload['from'] = $xml->attrs['from'];
 		$payload['status'] = (isset($xml->sub('status')->data)) ? $xml->sub('status')->data : '';
 		$this->log->log("Presence: {$payload['from']} [{$payload['show']}] {$payload['status']}",  XMPPHP_Log::LEVEL_DEBUG);
-		$this->event('presence', $payload);
+		if($xml->attrs['type'] == 'subscribe') {
+			if($this->auto_subscribe) $this->send("<presence type='subscribed' to='{$xml->attrs['from']}' from='{$this->basejid}' /><presence type='subscribe' to='{$xml->attrs['from']}' from='{$this->basejid}' />");
+			$this->event('subscription_requested', $payload);
+		} elseif($xml->attrs['type'] == 'subscribed') {
+			$this->event('subscription_accepted', $payload);
+		} else {
+			$this->event('presence', $payload);
+		}
 	}
 
     /**
