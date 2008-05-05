@@ -1,27 +1,45 @@
 <?php
-/*
-XMPPHP: The PHP XMPP Library
-Copyright (C) 2008  Nathanael C. Fritz
-This file is part of SleekXMPP.
+/**
+ * XMPPHP: The PHP XMPP Library
+ * Copyright (C) 2008  Nathanael C. Fritz
+ * This file is part of SleekXMPP.
+ * 
+ * XMPPHP is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * XMPPHP is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with XMPPHP; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ * @category   XMPPHP
+ * @package    XMPPHP
+ * @copyright  Copyright (C) 2008  Nathanael C. Fritz
+ */
 
-XMPPHP is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
+/** XMPPHP_Exception */
+require_once 'Exception.php';
 
-XMPPHP is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+/** XMPPHP_XMLObj */
+require_once 'XMLObj.php';
 
-You should have received a copy of the GNU General Public License
-along with XMPPHP; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+/** XMPPHP_Log */
+require_once 'Log.php';
 
-require_once("XMLObj.php");
-require_once("Log.php");
-
+/**
+ * XMPPHP XML Stream
+ * 
+ * @category   XMPPHP
+ * @package    XMPPHP
+ * @copyright  Copyright (C) 2008  Nathanael C. Fritz
+ * @version    $Id$
+ */
 class XMPPHP_XMLStream {
 	/**
 	 * @var resource
@@ -142,6 +160,16 @@ class XMPPHP_XMLStream {
 		$this->log = new XMPPHP_Log($printlog, $loglevel);
 	}
 
+	/**
+	 * Destructor
+	 * Cleanup connection
+	 */
+	public function __destruct() {
+	    if(!$this->disconnected) {
+	        $this->disconnect();
+	    }
+	}
+	
     /**
      * Return the log instance
      *
@@ -215,6 +243,8 @@ class XMPPHP_XMLStream {
 		if(!$this->socket) {
 			$this->log->log("Could not connect.",  XMPPHP_Log::LEVEL_ERROR);
 			$this->disconnected = true;
+			
+			throw new XMPPHP_Exception('Could not connect.');
 		}
 		stream_set_blocking($this->socket, 1);
 		if($sendinit) $this->send($this->stream_start);
@@ -235,6 +265,7 @@ class XMPPHP_XMLStream {
      * Disconnect from XMPP Host
      */
     public function disconnect() {
+        $this->log->log("Disconnecting...",  XMPPHP_Log::LEVEL_VERBOSE);
         $this->reconnect = false;
         $this->send($this->stream_end);
         $this->sent_disconnect = true;
@@ -394,8 +425,9 @@ class XMPPHP_XMLStream {
 			$name = $name[1];
 		}
 		$obj = new XMPPHP_XMLObj($name, $ns, $attr);
-		if($this->xml_depth > 1)
+		if($this->xml_depth > 1) {
 			$this->xmlobj[$this->xml_depth - 1]->subs[] = $obj;
+		}
 		$this->xmlobj[$this->xml_depth] = $obj;
 	}
 
@@ -471,8 +503,9 @@ class XMPPHP_XMLStream {
      * @param string   $data
      */
 	protected function charXML($parser, $data) {
-        if(array_key_exists($this->xml_depth, $this->xmlobj))
+        if(array_key_exists($this->xml_depth, $this->xmlobj)) {
             $this->xmlobj[$this->xml_depth]->data .= $data;
+        }
     }
 
     /**
@@ -485,7 +518,9 @@ class XMPPHP_XMLStream {
 		$this->log->log("EVENT: $name",  XMPPHP_Log::LEVEL_DEBUG);
 		foreach($this->eventhandlers as $handler) {
 			if($name == $handler[0]) {
-				if($handler[2] === null) $handler[2] = $this;
+				if($handler[2] === null) {
+				    $handler[2] = $this;
+				}
 				call_user_method($handler[1], $handler[2], $payload);
 			}
 		}

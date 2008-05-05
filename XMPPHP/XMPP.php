@@ -1,36 +1,85 @@
 <?php
-/*
-XMPPHP: The PHP XMPP Library
-Copyright (C) 2008  Nathanael C. Fritz
-This file is part of SleekXMPP.
+/**
+ * XMPPHP: The PHP XMPP Library
+ * Copyright (C) 2008  Nathanael C. Fritz
+ * This file is part of SleekXMPP.
+ * 
+ * XMPPHP is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * XMPPHP is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with XMPPHP; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ * @category   XMPPHP
+ * @package    XMPPHP
+ * @copyright  Copyright (C) 2008  Nathanael C. Fritz
+ */
 
-XMPPHP is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
+/** XMPPHP_XMLStream */
+require_once "XMLStream.php";
 
-XMPPHP is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with XMPPHP; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
-
-require_once("XMLStream.php");
-
+/**
+ * XMPPHP Main Class
+ * 
+ * @category   XMPPHP
+ * @package    XMPPHP
+ * @copyright  Copyright (C) 2008  Nathanael C. Fritz
+ * @version    $Id$
+ */
 class XMPPHP_XMPP extends XMPPHP_XMLStream {
+    /**
+     * @var string
+     */
 	protected $server;
-	protected $user;
-	protected $password;
-	protected $resource;
-	protected $fulljid;
-	protected $basejid;
-	protected $authed;
-	public $auto_subscribe = False;
 
+    /**
+     * @var string
+     */
+	protected $user;
+	
+    /**
+     * @var string
+     */
+	protected $password;
+	
+    /**
+     * @var string
+     */
+	protected $resource;
+	
+    /**
+     * @var string
+     */
+	protected $fulljid;
+	
+    /**
+     * @var string
+     */
+	protected $basejid;
+	
+    /**
+     * @var boolean
+     */
+	protected $authed = false;
+    
+    /**
+     * @var boolean
+     */
+	protected $auto_subscribe = false;
+    
+    /**
+     * @var boolean
+     */
+	protected $use_encryption = true;
+    
 	/**
 	 * Constructor
 	 *
@@ -53,24 +102,33 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 		$this->basejid = $this->user . '@' . $this->host;
 
 		$this->stream_start = '<stream:stream to="' . $server . '" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client" version="1.0">';
-		$this->stream_end = '</stream:stream>';
+		$this->stream_end   = '</stream:stream>';
+        $this->default_ns   = 'jabber:client';
+		
 		$this->addHandler('features', 'http://etherx.jabber.org/streams', 'features_handler');
 		$this->addHandler('success', 'urn:ietf:params:xml:ns:xmpp-sasl', 'sasl_success_handler');
 		$this->addHandler('failure', 'urn:ietf:params:xml:ns:xmpp-sasl', 'sasl_failure_handler');
 		$this->addHandler('proceed', 'urn:ietf:params:xml:ns:xmpp-tls', 'tls_proceed_handler');
 		$this->addHandler('message', 'jabber:client', 'message_handler');
 		$this->addHandler('presence', 'jabber:client', 'presence_handler');
-        
-		$this->default_ns     = 'jabber:client';
-		$this->authed         = false;
-		$this->use_encryption = true;
 	}
 
+    /**
+     * Turn encryption on/ff
+     *
+     * @param boolean $useEncryption
+     */
+    public function useEncryption($useEncryption = true) {
+        $this->use_encryption = $useEncryption;
+    }
+    
 	/**
 	 * Turn on auto-authorization of subscription requests.
+     *
+     * @param boolean $autoSubscribe
 	 */
-	public function autoSubscribe() {
-		$this->auto_subscribe = true;
+	public function autoSubscribe($autoSubscribe = true) {
+		$this->auto_subscribe = $autoSubscribe;
 	}
 
     /**
@@ -164,7 +222,7 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
      *
      * @param string $xml
      */
-	public function features_handler($xml) {
+	protected function features_handler($xml) {
 		if($xml->hasSub('starttls') and $this->use_encryption) {
 			$this->send("<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'><required /></starttls>");
 		} elseif($xml->hasSub('bind')) {
@@ -182,7 +240,7 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
      *
      * @param string $xml
      */
-	public function sasl_success_handler($xml) {
+	protected function sasl_success_handler($xml) {
 		$this->log->log("Auth success!");
 		$this->authed = true;
 		$this->reset();
@@ -193,9 +251,11 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
      *
      * @param string $xml
      */
-	public function sasl_failure_handler($xml) {
+	protected function sasl_failure_handler($xml) {
 		$this->log->log("Auth failed!",  XMPPHP_Log::LEVEL_ERROR);
 		$this->disconnect();
+        
+        throw new XMPPHP_Exception('Auth failed!');
 	}
 
     /**
@@ -203,7 +263,7 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
      *
      * @param string $xml
      */
-	public function resource_bind_handler($xml) {
+	protected function resource_bind_handler($xml) {
 		if($xml->attrs['type'] == 'result') {
 			$this->log->log("Bound to " . $xml->sub('bind')->sub('jid')->data);
 			$this->fulljid = $xml->sub('bind')->sub('jid')->data;
@@ -218,7 +278,7 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
      *
      * @param string $xml
      */
-	public function session_start_handler($xml) {
+	protected function session_start_handler($xml) {
 		$this->log->log("Session started");
 		$this->event('session_start');
 	}
@@ -228,7 +288,7 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
      *
      * @param string $xml
      */
-	public function tls_proceed_handler($xml) {
+	protected function tls_proceed_handler($xml) {
 		$this->log->log("Starting TLS encryption");
 		stream_socket_enable_crypto($this->socket, true, STREAM_CRYPTO_METHOD_SSLv23_CLIENT);
 		$this->reset();
