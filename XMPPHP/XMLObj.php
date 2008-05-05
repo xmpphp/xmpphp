@@ -18,16 +18,13 @@
  * along with XMPPHP; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  *
- * @category   XMPPHP
  * @package    XMPPHP
  * @copyright  Copyright (C) 2008  Nathanael C. Fritz
  */
 
-
 /**
  * XMPPHP XML Object
  * 
- * @category   XMPPHP
  * @package    XMPPHP
  * @copyright  Copyright (C) 2008  Nathanael C. Fritz
  * @version    $Id$

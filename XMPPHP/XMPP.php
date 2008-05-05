@@ -18,7 +18,6 @@
  * along with XMPPHP; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  *
- * @category   XMPPHP
  * @package    XMPPHP
  * @copyright  Copyright (C) 2008  Nathanael C. Fritz
  */
@@ -29,7 +28,6 @@ require_once "XMLStream.php";
 /**
  * XMPPHP Main Class
  * 
- * @category   XMPPHP
  * @package    XMPPHP
  * @copyright  Copyright (C) 2008  Nathanael C. Fritz
  * @version    $Id$
