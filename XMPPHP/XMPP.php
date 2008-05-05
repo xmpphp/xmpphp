@@ -22,7 +22,7 @@
  * @package    XMPPHP
  * @author     Nathanael C. Fritz <JID: fritzy@netflint.net>
  * @author     Stephan Wentz <JID: stephan@jabber.wentz.it>
- * @copyright  Copyright (C) 2008  Nathanael C. Fritz
+ * @copyright  2008 Nathanael C. Fritz
  */
 
 /** XMPPHP_XMLStream */
@@ -35,7 +35,7 @@ require_once "XMLStream.php";
  * @package    XMPPHP
  * @author     Nathanael C. Fritz <JID: fritzy@netflint.net>
  * @author     Stephan Wentz <JID: stephan@jabber.wentz.it>
- * @copyright  Copyright (C) 2008  Nathanael C. Fritz
+ * @copyright  2008 Nathanael C. Fritz
  * @version    $Id$
  */
 class XMPPHP_XMPP extends XMPPHP_XMLStream {
