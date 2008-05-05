@@ -45,72 +45,72 @@ class XMPPHP_Log {
     /**
      * @var array
      */
-	protected $data = array();
+    protected $data = array();
 
     /**
      * @var array
      */
-	protected $names = array('ERROR', 'WARNING', 'INFO', 'DEBUG', 'VERBOSE');
+    protected $names = array('ERROR', 'WARNING', 'INFO', 'DEBUG', 'VERBOSE');
 
     /**
      * @var integer
      */
-	protected $runlevel;
+    protected $runlevel;
 
     /**
      * @var boolean
      */
-	protected $printout;
+    protected $printout;
 
-	/**
-	 * Constructor
-	 *
-	 * @param boolean $printout
-	 * @param string  $runlevel
-	 */
-	public function __construct($printout = false, $runlevel = self::LEVEL_INFO) {
-		$this->runlevel = (int)$runlevel;
-		$this->printout = (boolean)$printout;
-	}
+    /**
+     * Constructor
+     *
+     * @param boolean $printout
+     * @param string  $runlevel
+     */
+    public function __construct($printout = false, $runlevel = self::LEVEL_INFO) {
+        $this->printout = (boolean)$printout;
+        $this->runlevel = (int)$runlevel;
+    }
 
     /**
      * Add a message to the log data array
      * If printout in this instance is set to true, directly output the message
-	 *
-	 * @param string  $msg
-	 * @param integer $runlevel
+     *
+     * @param string  $msg
+     * @param integer $runlevel
      */
-	public function log($msg, $runlevel = self::LEVEL_INFO) {
+    public function log($msg, $runlevel = self::LEVEL_INFO) {
         $time = time();
-		$this->data[] = array($this->runlevel, $msg, $time);
-		if($this->printout and $runlevel <= $this->runlevel) {
+        $this->data[] = array($this->runlevel, $msg, $time);
+        if($this->printout and $runlevel <= $this->runlevel) {
             $this->writeLine($msg, $runlevel, $time);
         }
-	}
+    }
 
     /**
      * Output the complete log.
      * Log will be cleared if $clear = true
-	 *
-	 * @param boolean $clear
-	 * @param integer $runlevel
+     *
+     * @param boolean $clear
+     * @param integer $runlevel
      */
-	public function printout($clear = true, $runlevel = null) {
-		if($runlevel === null) {
+    public function printout($clear = true, $runlevel = null) {
+        if($runlevel === null) {
             $runlevel = $this->runlevel;
         }
-		foreach($this->data as $data) {
-			if($runlevel <= $data[0]) {
+        foreach($this->data as $data) {
+            if($runlevel <= $data[0]) {
                 $this->writeLine($data[1], $runlevel, $data[2]);
             }
-		}
-		if($clear) {
+        }
+        if($clear) {
             $this->data = array();
         }
-	}
-	
-	protected function writeLine($msg, $runlevel, $time) {
-	    //echo date('Y-m-d H:i:s', $time)." [".$this->names[$runlevel]."]: ".$msg."\n";
-	    echo $time." [".$this->names[$runlevel]."]: ".$msg."\n";
-	}
+    }
+    
+    protected function writeLine($msg, $runlevel, $time) {
+        //echo date('Y-m-d H:i:s', $time)." [".$this->names[$runlevel]."]: ".$msg."\n";
+        echo $time." [".$this->names[$runlevel]."]: ".$msg."\n";
+    }
 }
