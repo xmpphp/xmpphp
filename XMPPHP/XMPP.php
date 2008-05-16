@@ -277,6 +277,25 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
         $this->send("<iq xmlns='jabber:client' type='set' id='$id'><session xmlns='urn:ietf:params:xml:ns:xmpp-session' /></iq>");
     }
 
+	/**
+	* Retrieves the roster
+	*
+	*/
+	public function getRoster() {
+		$id = $this->getID();
+		$this->addIdJHandler($id, 'roster_get_handler');
+		$this->send("<iq xmlns='jabber:client' type='get' id='$id'><query xmlns='jabber:iq:roster' /></iq>");
+	}
+
+	/**
+	* Roster retrieval handler
+	*
+	* @param string $xml
+	*/
+	protected function roster_get_handler($xml) {
+		// TODO: make this work
+	}
+
     /**
      * Session start handler
      *
