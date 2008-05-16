@@ -212,7 +212,7 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
         $payload['status'] = (isset($xml->sub('status')->data)) ? $xml->sub('status')->data : '';
         $this->log->log("Presence: {$payload['from']} [{$payload['show']}] {$payload['status']}",  XMPPHP_Log::LEVEL_DEBUG);
         if($xml->attrs['type'] == 'subscribe') {
-            if($this->auto_subscribe) $this->send("<presence type='subscribed' to='{$xml->attrs['from']}' from='{$this->basejid}' /><presence type='subscribe' to='{$xml->attrs['from']}' from='{$this->basejid}' />");
+            if($this->auto_subscribe) $this->send("<presence type='subscribed' to='{$xml->attrs['from']}' from='{$this->fulljid}' /><presence type='subscribe' to='{$xml->attrs['from']}' from='{$this->fulljid}' />");
             $this->event('subscription_requested', $payload);
         } elseif($xml->attrs['type'] == 'subscribed') {
             $this->event('subscription_accepted', $payload);
