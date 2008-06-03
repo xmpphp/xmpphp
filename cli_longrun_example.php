@@ -6,6 +6,7 @@ error_reporting(E_ALL & E_STRICT);
 include 'XMPPHP/XMPP.php';
 
 $conn = new XMPPHP_XMPP('talk.google.com', 5222, 'username', 'password', 'xmpphp', 'gmail.com', $printlog=true, $loglevel=XMPPHP_Log::LEVEL_INFO);
+$conn->autoSubscribe();
 
 try {
     $conn->connect();
@@ -29,6 +30,7 @@ try {
     			break;
     			case 'session_start':
     			    print "Session Start\n";
+			    	$conn->getRoster();
     				$conn->presence($status="Cheese!");
     			break;
     		}
