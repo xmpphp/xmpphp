@@ -290,6 +290,26 @@ class XMPPHP_XMLStream {
 	public function isDisconnected() {
 		return $this->connected;
 	}
+
+	private function __process() {
+		$read = array($this->socket);
+		$write = null;
+		$except = null;
+		$updated = stream_select($read, $write, $except, 1);
+		if ($updated > 0) {
+			$buff = @fread($this->socket, 1024);
+			if(!$buff) { 
+				if($this->reconnect) {
+					$this->doReconnect();
+				} else {
+					fclose($this->socket);
+					return false;
+				}
+			}
+			$this->log->log("RECV: $buff",  XMPPHP_Log::LEVEL_VERBOSE);
+			xml_parse($this->parser, $buff, false);
+		}
+	}
 	
 	/**
 	 * Process
@@ -299,23 +319,7 @@ class XMPPHP_XMLStream {
 	public function process() {
 		$updated = '';
 		while(!$this->disconnect) {
-			$read = array($this->socket);
-			$write = null;
-			$except = null;
-			$updated = stream_select($read, $write, $except, 1);
-			if ($updated > 0) {
-				$buff = @fread($this->socket, 1024);
-				if(!$buff) { 
-					if($this->reconnect) {
-						$this->doReconnect();
-					} else {
-						fclose($this->socket);
-						return false;
-					}
-				}
-				$this->log->log("RECV: $buff",  XMPPHP_Log::LEVEL_VERBOSE);
-				xml_parse($this->parser, $buff, false);
-			}
+			$this->__process();
 		}
 	}
 
@@ -329,23 +333,7 @@ class XMPPHP_XMLStream {
 		$start = time();
 		$updated = '';
 		while(!$this->disconnected and ($timeout == -1 or time() - $start < $timeout)) {
-			$read = array($this->socket);
-			$write = null;
-			$except = null;
-			$updated = stream_select($read, $write, $except, 1);
-			if ($updated > 0) {
-				$buff = @fread($this->socket, 1024);
-				if(!$buff) { 
-					if($this->reconnect) {
-						$this->doReconnect();
-					} else {
-						fclose($this->socket);
-						return false;
-					}
-				}
-				$this->log->log("RECV: $buff",  XMPPHP_Log::LEVEL_VERBOSE);
-				xml_parse($this->parser, $buff, false);
-			}
+			$this->__process();
 		}
 	}
 
@@ -365,23 +353,7 @@ class XMPPHP_XMLStream {
 		reset($this->until);
 		$updated = '';
 		while(!$this->disconnected and $this->until[$event_key] and (time() - $start < $timeout or $timeout == -1)) {
-			$read = array($this->socket);
-			$write = null;
-			$except = null;
-			$updated = stream_select($read, $write, $except, 1);
-			if ($updated > 0) {
-				$buff = @fread($this->socket, 1024);
-				if(!$buff) { 
-					if($this->reconnect) {
-						$this->doReconnect();
-					} else {
-						fclose($this->socket);
-						return false;
-					}
-				}
-				$this->log->log("RECV: $buff",  XMPPHP_Log::LEVEL_VERBOSE);
-				xml_parse($this->parser, $buff, false);
-			}
+			$this->__process();
 		}
 		if(array_key_exists($event_key, $this->until_payload)) {
 			$payload = $this->until_payload[$event_key];

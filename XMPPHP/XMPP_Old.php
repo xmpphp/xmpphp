@@ -55,7 +55,6 @@ require_once "XMPP.php";
 		 */
 		protected function startXML($parser, $name, $attr) {
 			if($this->xml_depth == 0 and $attr['version'] != '1.0') {
-				print_r($attr);
 				$this->session_id = $attr['ID'];
 				$this->authenticate();
 			}

@@ -143,14 +143,16 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 	 * @param string $type
 	 * @param string $subject
 	 */
-	public function message($to, $body, $type = 'chat', $subject = null) {
+	public function message($to, $body, $type = 'chat', $subject = null, $payload = null) {
 		$to	  = htmlspecialchars($to);
 		$body	= htmlspecialchars($body);
 		$subject = htmlspecialchars($subject);
 		
 		$out = "<message from='{$this->fulljid}' to='$to' type='$type'>";
 		if($subject) $out .= "<subject>$subject</subject>";
-		$out .= "<body>$body</body></message>";
+		$out .= "<body>$body</body>";
+		if($payload) $out .= $payload;
+		$out .= "</message>";
 		
 		$this->send($out);
 	}
