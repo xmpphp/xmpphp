@@ -145,6 +145,10 @@ class XMPPHP_XMLStream {
 	 * @var boolean
 	 */
 	protected $is_server;
+	/**
+	 * @var float
+	 */
+	protected $last_send = 0;
 
 	/**
 	 * Constructor
@@ -537,10 +541,39 @@ class XMPPHP_XMLStream {
 	 *
 	 * @param string $msg
 	 */
-	protected function send($msg) {
-		#socket_write($this->socket, $msg);
-		$this->log->log("SENT: $msg",  XMPPHP_Log::LEVEL_VERBOSE);
-		@fwrite($this->socket, $msg);
+	protected function send($msg, $rec=false) {
+		if($this->time() - $this->last_send < .1) {
+			usleep(100000);
+		}
+		$wait = true;
+		while($wait) {
+			$read = null;
+			$write = array($this->socket);
+			$except = null;
+			$select = stream_select($read, $write, $except, 0, 0);
+			if($select === False) {
+				$this->doReconnect();
+				return false;
+			} elseif ($select > 0) {
+				$wait = false;
+			} else {
+				usleep(100000);
+				//$this->processTime(.25);
+			}
+		}
+		$sentbytes = @fwrite($this->socket, $msg, 1024);
+		$this->last_send = $this->time();
+		$this->log->log("SENT: " . mb_substr($msg, 0, $sentbytes, '8bit'),  XMPPHP_Log::LEVEL_VERBOSE);
+		if($sentbytes === FALSE) {
+			$this->doReconnect();
+		} elseif ($sentbytes != mb_strlen($msg, '8bit')) {
+			$this->send(mb_substr($msg, $sentbytes, mb_strlen($msg, '8bit'), '8bit'), true);
+		}
+	}
+
+	protected function time() {
+		list($usec, $sec) = explode(" ", microtime());
+		return (float)$sec + (float)$usec;
 	}
 
 	/**
