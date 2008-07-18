@@ -269,7 +269,7 @@ class XMPPHP_XMLStream {
 	public function doReconnect() {
 		if(!$this->is_server) {
 			$this->log->log("Reconnecting...",  XMPPHP_Log::LEVEL_WARNING);
-			$this->connect(false, false);
+			$this->connect(30, false, false);
 			$this->reset();
 		}
 	}
@@ -292,14 +292,14 @@ class XMPPHP_XMLStream {
 	 * @return boolean
 	 */
 	public function isDisconnected() {
-		return $this->connected;
+		return $this->disconnected;
 	}
 
 	private function __process() {
 		$read = array($this->socket);
 		$write = null;
 		$except = null;
-		$updated = stream_select($read, $write, $except, 1);
+		$updated = @stream_select($read, $write, $except, 1);
 		if ($updated > 0) {
 			$buff = @fread($this->socket, 1024);
 			if(!$buff) { 
@@ -371,7 +371,7 @@ class XMPPHP_XMLStream {
 	/**
 	 * Obsolete?
 	 */
-	protected function Xapply_socket($socket) {
+	public function Xapply_socket($socket) {
 		$this->socket = $socket;
 	}
 
@@ -383,7 +383,7 @@ class XMPPHP_XMLStream {
 	 * @param resource $parser
 	 * @param string   $name
 	 */
-	protected function startXML($parser, $name, $attr) {
+	public function startXML($parser, $name, $attr) {
 		if($this->been_reset) {
 			$this->been_reset = false;
 			$this->xml_depth = 0;
@@ -424,7 +424,7 @@ class XMPPHP_XMLStream {
 	 * @param resource $parser
 	 * @param string   $name
 	 */
-	protected function endXML($parser, $name) {
+	public function endXML($parser, $name) {
 		#$this->log->log("Ending $name",  XMPPHP_Log::LEVEL_DEBUG);
 		#print "$name\n";
 		if($this->been_reset) {
@@ -487,7 +487,7 @@ class XMPPHP_XMLStream {
 	 * @param resource $parser
 	 * @param string   $data
 	 */
-	protected function charXML($parser, $data) {
+	public function charXML($parser, $data) {
 		if(array_key_exists($this->xml_depth, $this->xmlobj)) {
 			$this->xmlobj[$this->xml_depth]->data .= $data;
 		}
@@ -499,7 +499,7 @@ class XMPPHP_XMLStream {
 	 * @param string $name
 	 * @param string $payload
 	 */
-	protected function event($name, $payload = null) {
+	public function event($name, $payload = null) {
 		$this->log->log("EVENT: $name",  XMPPHP_Log::LEVEL_DEBUG);
 		foreach($this->eventhandlers as $handler) {
 			if($name == $handler[0]) {
@@ -522,7 +522,7 @@ class XMPPHP_XMLStream {
 	/**
 	 * Read from socket
 	 */
-	protected function read() {
+	public function read() {
 		$buff = @fread($this->socket, 1024);
 		if(!$buff) { 
 			if($this->reconnect) {
@@ -541,7 +541,7 @@ class XMPPHP_XMLStream {
 	 *
 	 * @param string $msg
 	 */
-	protected function send($msg, $rec=false) {
+	public function send($msg, $rec=false) {
 		if($this->time() - $this->last_send < .1) {
 			usleep(100000);
 		}
@@ -550,7 +550,7 @@ class XMPPHP_XMLStream {
 			$read = null;
 			$write = array($this->socket);
 			$except = null;
-			$select = stream_select($read, $write, $except, 0, 0);
+			$select = @stream_select($read, $write, $except, 0, 0);
 			if($select === False) {
 				$this->doReconnect();
 				return false;
@@ -571,7 +571,7 @@ class XMPPHP_XMLStream {
 		}
 	}
 
-	protected function time() {
+	public function time() {
 		list($usec, $sec) = explode(" ", microtime());
 		return (float)$sec + (float)$usec;
 	}
@@ -579,7 +579,7 @@ class XMPPHP_XMLStream {
 	/**
 	 * Reset connection
 	 */
-	protected function reset() {
+	public function reset() {
 		$this->xml_depth = 0;
 		unset($this->xmlobj);
 		$this->xmlobj = array();
@@ -593,7 +593,7 @@ class XMPPHP_XMLStream {
 	/**
 	 * Setup the XML parser
 	 */
-	protected function setupParser() {
+	public function setupParser() {
 		$this->parser = xml_parser_create('UTF-8');
 		xml_parser_set_option($this->parser, XML_OPTION_SKIP_WHITE, 1);
 		xml_parser_set_option($this->parser, XML_OPTION_TARGET_ENCODING, 'UTF-8');
