@@ -149,6 +149,10 @@ class XMPPHP_XMLStream {
 	 * @var float
 	 */
 	protected $last_send = 0;
+	/**
+	 * @var boolean
+	 */
+	protected $use_ssl = false;
 
 	/**
 	 * Constructor
@@ -195,6 +199,15 @@ class XMPPHP_XMLStream {
 	public function getId() {
 		$this->lastid++;
 		return $this->lastid;
+	}
+
+	/**
+	 * Set SSL
+	 *
+	 * @return integer
+	 */
+	public function useSSL($use=true) {
+		$this->use_ssl = $use;
 	}
 
 	/**
@@ -247,9 +260,11 @@ class XMPPHP_XMLStream {
 		} else {
 			$conflag = STREAM_CLIENT_CONNECT;
 		}
-		$this->log->log("Connecting to tcp://{$this->host}:{$this->port}");
+		$conntype = 'tcp';
+		if($this->use_ssl) $conntype = 'ssl';
+		$this->log->log("Connecting to $conntype://{$this->host}:{$this->port}");
 		try {
-			$this->socket = @stream_socket_client("tcp://{$this->host}:{$this->port}", $errno, $errstr, $timeout, $conflag);
+			$this->socket = @stream_socket_client("$conntype://{$this->host}:{$this->port}", $errno, $errstr, $timeout, $conflag);
 		} catch (Exception $e) {
 			throw new XMPPHP_Exception($e->getMessage());
 		}
