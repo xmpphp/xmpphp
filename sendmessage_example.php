@@ -13,7 +13,7 @@ try {
     $conn->connect();
     $conn->processUntil('session_start');
     $conn->presence();
-    $conn->message('stephan@jabber.wentz.it', 'This is a test message!');
+    $conn->message('someguy@someserver.net', 'This is a test message!');
     $conn->disconnect();
 } catch(XMPPHP_Exception $e) {
     die($e->getMessage());
