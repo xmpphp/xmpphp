@@ -122,6 +122,10 @@ class XMPPHP_XMLStream {
 	 */
 	protected $until = '';
 	/**
+	 * @var string
+	 */
+	protected $until_count = '';
+	/**
 	 * @var array
 	 */
 	protected $until_happened = false;
@@ -310,7 +314,7 @@ class XMPPHP_XMLStream {
 		return $this->disconnected;
 	}
 
-	private function __process() {
+	public function __process() {
 		$read = array($this->socket);
 		$write = null;
 		$except = null;
@@ -370,8 +374,9 @@ class XMPPHP_XMLStream {
 		end($this->until);
 		$event_key = key($this->until);
 		reset($this->until);
+		$until_count[$event_key] = 0;
 		$updated = '';
-		while(!$this->disconnected and $this->until[$event_key] and (time() - $start < $timeout or $timeout == -1)) {
+		while(!$this->disconnected and $this->until_count[$event_key] < 1 and (time() - $start < $timeout or $timeout == -1)) {
 			$this->__process();
 		}
 		if(array_key_exists($event_key, $this->until_payload)) {
@@ -380,6 +385,8 @@ class XMPPHP_XMLStream {
 			$payload = array();
 		}
 		unset($this->until_payload[$event_key]);
+		unset($this->until_count[$event_key]);
+		unset($this->until[$event_key]);
 		return $payload;
 	}
 
@@ -528,7 +535,8 @@ class XMPPHP_XMLStream {
 			if(is_array($until)) {
 				if(in_array($name, $until)) {
 					$this->until_payload[$key][] = array($name, $payload);
-					$this->until[$key] = false;
+					$this->until_count[$key] += 1;
+					#$this->until[$key] = false;
 				}
 			}
 		}

@@ -73,6 +73,7 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 	 * @var boolean
 	 */
 	protected $authed = false;
+	protected $session_started = false;
 	
 	/**
 	 * @var boolean
@@ -219,7 +220,10 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 		$payload['status'] = (isset($xml->sub('status')->data)) ? $xml->sub('status')->data : '';
 		$this->log->log("Presence: {$payload['from']} [{$payload['show']}] {$payload['status']}",  XMPPHP_Log::LEVEL_DEBUG);
 		if(array_key_exists('type', $xml->attrs) and $xml->attrs['type'] == 'subscribe') {
-			if($this->auto_subscribe) $this->send("<presence type='subscribed' to='{$xml->attrs['from']}' from='{$this->fulljid}' /><presence type='subscribe' to='{$xml->attrs['from']}' from='{$this->fulljid}' />");
+			if($this->auto_subscribe) {
+				$this->send("<presence type='subscribed' to='{$xml->attrs['from']}' from='{$this->fulljid}' />");
+				$this->send("<presence type='subscribe' to='{$xml->attrs['from']}' from='{$this->fulljid}' />");
+			}
 			$this->event('subscription_requested', $payload);
 		} elseif(array_key_exists('type', $xml->attrs) and $xml->attrs['type'] == 'subscribed') {
 			$this->event('subscription_accepted', $payload);
@@ -310,6 +314,7 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 	 */
 	protected function session_start_handler($xml) {
 		$this->log->log("Session started");
+		$this->session_started = true;
 		$this->event('session_start');
 	}
 
