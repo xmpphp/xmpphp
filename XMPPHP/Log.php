@@ -112,5 +112,6 @@ class XMPPHP_Log {
 	protected function writeLine($msg, $runlevel, $time) {
 		//echo date('Y-m-d H:i:s', $time)." [".$this->names[$runlevel]."]: ".$msg."\n";
 		echo $time." [".$this->names[$runlevel]."]: ".$msg."\n";
+		flush();
 	}
 }

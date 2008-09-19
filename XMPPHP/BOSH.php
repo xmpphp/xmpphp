@@ -55,11 +55,9 @@ class XMPPHP_BOSH extends XMPPHP_XMPP {
 			$this->sid = null;
 			if($session)
 			{
-				print "loading session...";
 				$this->loadSession();
 			}
 			if(!$this->sid) {
-				print "loading...";
 				$body = $this->__buildBody();
 				$body->addAttribute('hold','1');
 				$body->addAttribute('to', $this->host);
@@ -74,6 +72,10 @@ class XMPPHP_BOSH extends XMPPHP_XMPP {
 				$response = $this->__sendBody($body);
 				$rxml = new SimpleXMLElement($response);
 				$this->sid = $rxml['sid'];
+
+			} else {
+				$buff = "<stream:stream xmlns='jabber:client' xmlns:stream='http://etherx.jabber.org/streams'>";
+				xml_parse($this->parser, $buff, false);
 			}
 		}
 
@@ -162,15 +164,22 @@ class XMPPHP_BOSH extends XMPPHP_XMPP {
 		}
 
 		public function loadSession() {
-			foreach($_SESSION['XMPPHP_BOSH'] as $key => $value) {
-				$this[$key] = $value;
+			if(is_array($_SESSION['XMPPHP_BOSH'])) {
+				foreach($_SESSION['XMPPHP_BOSH'] as $key => $value) {
+					#print "Loading $key as $value<br/>";
+					$this->$key = $value;
+				}
 			}
 		}
 
 		public function saveSession() {
 			$_SESSION['XMPPHP_BOSH'] = Array();
-			foreach ($this as $key => $value) {
-				$_SESSION['XMPPHP_BOSH'][$key] = $value;
+			#$variables = Array('server', 'user', 'password', 'resource', 'fulljid', 'basejid', 'authed', 'session_started', 'auto_subscribe', 'use_encryption', 'host', 'port', 'stream_start', 'stream_end', 'disconnected', 'sent_disconnected', 'ns_map', 'current_ns', 'lastid', 'default_ns',  'been_reset', 'last_send', 'use_ssl', 'rid', 'sid', 'http_server','http_buffer', 'xml_depth');
+			$variables = Array('rid', 'sid');
+			foreach ($variables as $key) {
+				#print "Saving $key as {$this->$key}<br/>";
+				flush();
+				$_SESSION['XMPPHP_BOSH'][$key] = (string) $this->$key;
 			}
 		}
 }
