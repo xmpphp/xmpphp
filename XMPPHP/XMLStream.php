@@ -374,7 +374,7 @@ class XMPPHP_XMLStream {
 		end($this->until);
 		$event_key = key($this->until);
 		reset($this->until);
-		$until_count[$event_key] = 0;
+		$this->until_count[$event_key] = 0;
 		$updated = '';
 		while(!$this->disconnected and $this->until_count[$event_key] < 1 and (time() - $start < $timeout or $timeout == -1)) {
 			$this->__process();

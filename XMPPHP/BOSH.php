@@ -51,7 +51,7 @@ class XMPPHP_BOSH extends XMPPHP_XMPP {
 			$this->use_encryption = false;
 			$this->session = $session;
 
-			$this->rid = 0;
+			$this->rid = 3001;
 			$this->sid = null;
 			if($session)
 			{
@@ -86,8 +86,11 @@ class XMPPHP_BOSH extends XMPPHP_XMPP {
 			$ch = curl_init($this->http_server);
 			curl_setopt($ch, CURLOPT_HEADER, 0);
 			curl_setopt($ch, CURLOPT_POST, 1);
-			curl_setopt ($ch, CURLOPT_HTTPHEADER, Array("Content-Type: text/xml"));
-			curl_setopt ($ch, CURLOPT_POSTFIELDS, Array('upfile' => $body->asXML()));
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $body->asXML());
+			curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+			$header = array('Accept-Encoding: gzip, deflate','Content-Type: text/xml; charset=utf-8');
+			curl_setopt($ch, CURLOPT_HTTPHEADER, $header );
+			curl_setopt($ch, CURLOPT_VERBOSE, 0);
 			$output = '';
 			if($recv) {
 				curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -130,12 +133,14 @@ class XMPPHP_BOSH extends XMPPHP_XMPP {
 				$idx = key($this->http_buffer);
 				$buffer = $this->http_buffer[$idx];
 				unset($this->http_buffer[$idx]);
-				$xml = new SimpleXMLElement($buffer);
-				$children = $xml->xpath('child::node()');
-				foreach ($children as $child) {
-					$buff = $child->asXML();
-					$this->log->log("RECV: $buff",  XMPPHP_Log::LEVEL_VERBOSE);
-					xml_parse($this->parser, $buff, false);
+				if($buffer) {
+					$xml = new SimpleXMLElement($buffer);
+					$children = $xml->xpath('child::node()');
+					foreach ($children as $child) {
+						$buff = $child->asXML();
+						$this->log->log("RECV: $buff",  XMPPHP_Log::LEVEL_VERBOSE);
+						xml_parse($this->parser, $buff, false);
+					}
 				}
 			}
 		}
@@ -164,7 +169,7 @@ class XMPPHP_BOSH extends XMPPHP_XMPP {
 		}
 
 		public function loadSession() {
-			if(is_array($_SESSION['XMPPHP_BOSH'])) {
+			if(isset($_SESSION['XMPPHP_BOSH']) and is_array($_SESSION['XMPPHP_BOSH'])) {
 				foreach($_SESSION['XMPPHP_BOSH'] as $key => $value) {
 					#print "Loading $key as $value<br/>";
 					$this->$key = $value;
@@ -175,7 +180,7 @@ class XMPPHP_BOSH extends XMPPHP_XMPP {
 		public function saveSession() {
 			$_SESSION['XMPPHP_BOSH'] = Array();
 			#$variables = Array('server', 'user', 'password', 'resource', 'fulljid', 'basejid', 'authed', 'session_started', 'auto_subscribe', 'use_encryption', 'host', 'port', 'stream_start', 'stream_end', 'disconnected', 'sent_disconnected', 'ns_map', 'current_ns', 'lastid', 'default_ns',  'been_reset', 'last_send', 'use_ssl', 'rid', 'sid', 'http_server','http_buffer', 'xml_depth');
-			$variables = Array('rid', 'sid');
+			$variables = Array('rid', 'sid', 'authed');
 			foreach ($variables as $key) {
 				#print "Saving $key as {$this->$key}<br/>";
 				flush();

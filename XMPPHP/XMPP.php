@@ -240,7 +240,7 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 	protected function features_handler($xml) {
 		if($xml->hasSub('starttls') and $this->use_encryption) {
 			$this->send("<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'><required /></starttls>");
-		} elseif($xml->hasSub('bind')) {
+		} elseif($xml->hasSub('bind') and $this->authed) {
 			$id = $this->getId();
 			$this->addIdHandler($id, 'resource_bind_handler');
 			$this->send("<iq xmlns=\"jabber:client\" type=\"set\" id=\"$id\"><bind xmlns=\"urn:ietf:params:xml:ns:xmpp-bind\"><resource>{$this->resource}</resource></bind></iq>");
