@@ -179,12 +179,8 @@ class XMPPHP_BOSH extends XMPPHP_XMPP {
 
 		public function saveSession() {
 			$_SESSION['XMPPHP_BOSH'] = Array();
-			#$variables = Array('server', 'user', 'password', 'resource', 'fulljid', 'basejid', 'authed', 'session_started', 'auto_subscribe', 'use_encryption', 'host', 'port', 'stream_start', 'stream_end', 'disconnected', 'sent_disconnected', 'ns_map', 'current_ns', 'lastid', 'default_ns',  'been_reset', 'last_send', 'use_ssl', 'rid', 'sid', 'http_server','http_buffer', 'xml_depth');
-			$variables = Array('rid', 'sid', 'authed');
-			foreach ($variables as $key) {
-				#print "Saving $key as {$this->$key}<br/>";
-				flush();
-				$_SESSION['XMPPHP_BOSH'][$key] = (string) $this->$key;
-			}
+			$_SESSION['XMPPHP_BOSH']['rid'] = (string) $this->rid;
+			$_SESSION['XMPPHP_BOSH']['sid'] = (string) $this->sid;
+			$_SESSION['XMPPHP_BOSH']['authed'] = (boolean) $this->authed;
 		}
 }
