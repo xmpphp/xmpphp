@@ -246,7 +246,11 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 			$this->send("<iq xmlns=\"jabber:client\" type=\"set\" id=\"$id\"><bind xmlns=\"urn:ietf:params:xml:ns:xmpp-bind\"><resource>{$this->resource}</resource></bind></iq>");
 		} else {
 			$this->log->log("Attempting Auth...");
+			if ($this->password) {
 			$this->send("<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN'>" . base64_encode("\x00" . $this->user . "\x00" . $this->password) . "</auth>");
+			} else {
+                        $this->send("<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='ANONYMOUS'/>");
+			}	
 		}
 	}
 
@@ -282,6 +286,8 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 		if($xml->attrs['type'] == 'result') {
 			$this->log->log("Bound to " . $xml->sub('bind')->sub('jid')->data);
 			$this->fulljid = $xml->sub('bind')->sub('jid')->data;
+			$jidarray = explode('/',$this->fulljid);
+			$this->jid = $jidarray[0];
 		}
 		$id = $this->getId();
 		$this->addIdHandler($id, 'session_start_handler');

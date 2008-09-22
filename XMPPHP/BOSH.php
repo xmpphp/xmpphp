@@ -169,18 +169,18 @@ class XMPPHP_BOSH extends XMPPHP_XMPP {
 		}
 
 		public function loadSession() {
-			if(isset($_SESSION['XMPPHP_BOSH']) and is_array($_SESSION['XMPPHP_BOSH'])) {
-				foreach($_SESSION['XMPPHP_BOSH'] as $key => $value) {
-					#print "Loading $key as $value<br/>";
-					$this->$key = $value;
-				}
-			}
+			if(isset($_SESSION['XMPPHP_BOSH_RID'])) $this->rid = $_SESSION['XMPPHP_BOSH_RID'];
+			if(isset($_SESSION['XMPPHP_BOSH_SID'])) $this->sid = $_SESSION['XMPPHP_BOSH_SID'];
+			if(isset($_SESSION['XMPPHP_BOSH_authed'])) $this->authed = $_SESSION['XMPPHP_BOSH_authed'];
+			if(isset($_SESSION['XMPPHP_BOSH_jid'])) $this->jid = $_SESSION['XMPPHP_BOSH_jid'];
+			if(isset($_SESSION['XMPPHP_BOSH_fulljid'])) $this->fulljid = $_SESSION['XMPPHP_BOSH_fulljid'];
 		}
 
 		public function saveSession() {
-			$_SESSION['XMPPHP_BOSH'] = Array();
-			$_SESSION['XMPPHP_BOSH']['rid'] = (string) $this->rid;
-			$_SESSION['XMPPHP_BOSH']['sid'] = (string) $this->sid;
-			$_SESSION['XMPPHP_BOSH']['authed'] = (boolean) $this->authed;
+			$_SESSION['XMPPHP_BOSH_RID'] = (string) $this->rid;
+			$_SESSION['XMPPHP_BOSH_SID'] = (string) $this->sid;
+			$_SESSION['XMPPHP_BOSH_authed'] = (boolean) $this->authed;
+			$_SESSION['XMPPHP_BOSH_jid'] = (string) $this->jid;
+			$_SESSION['XMPPHP_BOSH_fulljid'] = (string) $this->fulljid;
 		}
 }
