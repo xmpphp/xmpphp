@@ -253,7 +253,12 @@ class XMPPHP_XMLStream {
 	 * @param
 	 */
 	public function addXPathHandler($xpath, $pointer, $obj = null) {
-		foreach(split("/", $xpath) as $ns_tag) {
+		if (preg_match_all("/\(?{[^\}]+}\)?(\/?)[^\/]+/", $xpath, $regs)) {
+			$ns_tags = $regs[0];
+		} else {
+			$ns_tags = array($xpath);
+		}
+		foreach($ns_tags as $ns_tag) {
 			list($l, $r) = split("}", $ns_tag);
 			if ($r != null) {
 				$xpart = array(substr($l, 1), $r);
