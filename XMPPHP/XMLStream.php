@@ -22,6 +22,7 @@
  * @package	XMPPHP
  * @author	 Nathanael C. Fritz <JID: fritzy@netflint.net>
  * @author	 Stephan Wentz <JID: stephan@jabber.wentz.it>
+ * @author	 Michael Garvin <JID: gar@netflint.net>
  * @copyright  2008 Nathanael C. Fritz
  */
 
@@ -41,6 +42,7 @@ require_once 'Log.php';
  * @package	XMPPHP
  * @author	 Nathanael C. Fritz <JID: fritzy@netflint.net>
  * @author	 Stephan Wentz <JID: stephan@jabber.wentz.it>
+ * @author	 Michael Garvin <JID: gar@netflint.net>
  * @copyright  2008 Nathanael C. Fritz
  * @version	$Id$
  */
@@ -101,6 +103,10 @@ class XMPPHP_XMLStream {
 	 * @var array
 	 */
 	protected $nshandlers = array();
+	/**
+	 * @var array
+	 */
+	protected $xpathhandlers = array();
 	/**
 	 * @var array
 	 */
@@ -228,18 +234,39 @@ class XMPPHP_XMLStream {
 	/**
 	 * Add Handler
 	 *
-	 * @param integer $id
+	 * @param string  $name
 	 * @param string  $ns
 	 * @param string  $pointer
 	 * @param string  $obj
 	 * @param integer $depth
 	 */
 	public function addHandler($name, $ns, $pointer, $obj = null, $depth = 1) {
+		#TODO deprication warning
 		$this->nshandlers[] = array($name,$ns,$pointer,$obj, $depth);
 	}
 
 	/**
-	 * Add Evemt Handler
+	 * Add XPath Handler
+	 *
+	 * @param string $xpath
+	 * @param string $pointer
+	 * @param
+	 */
+	public function addXPathHandler($xpath, $pointer, $obj = null) {
+		foreach(split("/", $xpath) as $ns_tag) {
+			list($l, $r) = split("}", $ns_tag);
+			if ($r != null) {
+				$xpart = array(substr($l, 1), $r);
+			} else {
+				$xpart = array(null, $l);
+			}
+			$xpath_array[] = $xpart;
+		}
+		$this->xpathhandlers[] = array($xpath_array, $pointer, $obj);
+	}
+
+	/**
+	 * Add Event Handler
 	 *
 	 * @param integer $id
 	 * @param string  $pointer
@@ -456,9 +483,30 @@ class XMPPHP_XMLStream {
 		$this->xml_depth--;
 		if($this->xml_depth == 1) {
 			#clean-up old objects
-			$found = false;
+			#$found = false; #FIXME This didn't appear to be in use --Gar
+			foreach($this->xpathhandlers as $handler) {
+				if (array_key_exists(2, $this->xmlobj)) {
+					$searchxml = $this->xmlobj[2];
+					$nstag = array_shift($handler[0]);
+					if (($nstag[0] == null or $searchxml->ns == $nstag[0]) and ($nstag[1] == "*" or $nstag[1] == $searchxml->name)) {
+						foreach($handler[0] as $nstag) {
+							if ($searchxml !== null and $searchxml->hasSub($nstag[1], $ns=$nstag[0])) {
+								$searchxml = $searchxml->sub($nstag[1], $ns=$nstag[0]);
+							} else {
+								$searchxml = null;
+								break;
+							}
+						}
+						if ($searchxml !== null) {
+							if($handler[2] === null) $handler[2] = $this;
+							$this->log->log("Calling {$handler[1]}",  XMPPHP_Log::LEVEL_DEBUG);
+							$handler[2]->$handler[1]($this->xmlobj[2]);
+						}
+					}
+				}
+			}
 			foreach($this->nshandlers as $handler) {
-				if($handler[4] != 1 and $this->xmlobj[2]->hasSub($handler[0])) {
+				if($handler[4] != 1 and array_key_exists(2, $this->xmlobj) and  $this->xmlobj[2]->hasSub($handler[0])) {
 					$searchxml = $this->xmlobj[2]->sub($handler[0]);
 				} elseif(is_array($this->xmlobj) and array_key_exists(2, $this->xmlobj)) {
 					$searchxml = $this->xmlobj[2];
