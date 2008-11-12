@@ -27,6 +27,7 @@
 
 /** XMPPHP_XMLStream */
 require_once "XMLStream.php";
+require_once "Roster.php";
 
 /**
  * XMPPHP Main Class
@@ -86,6 +87,11 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 	protected $use_encryption = true;
 	
 	/**
+	 * @var object
+	 */
+	public $roster;
+
+	/**
 	 * Constructor
 	 *
 	 * @param string  $host
@@ -106,16 +112,19 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 		if(!$server) $server = $host;
 		$this->basejid = $this->user . '@' . $this->host;
 
+		$this->roster = new Roster();
+
 		$this->stream_start = '<stream:stream to="' . $server . '" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client" version="1.0">';
 		$this->stream_end   = '</stream:stream>';
 		$this->default_ns   = 'jabber:client';
 		
-		$this->addHandler('features', 'http://etherx.jabber.org/streams', 'features_handler');
-		$this->addHandler('success', 'urn:ietf:params:xml:ns:xmpp-sasl', 'sasl_success_handler');
-		$this->addHandler('failure', 'urn:ietf:params:xml:ns:xmpp-sasl', 'sasl_failure_handler');
-		$this->addHandler('proceed', 'urn:ietf:params:xml:ns:xmpp-tls', 'tls_proceed_handler');
-		$this->addHandler('message', 'jabber:client', 'message_handler');
-		$this->addHandler('presence', 'jabber:client', 'presence_handler');
+		$this->addXPathHandler('{http://etherx.jabber.org/streams}features', 'features_handler');
+		$this->addXPathHandler('{urn:ietf:params:xml:ns:xmpp-sasl}success', 'sasl_success_handler');
+		$this->addXPathHandler('{urn:ietf:params:xml:ns:xmpp-sasl}failure', 'sasl_failure_handler');
+		$this->addXPathHandler('{urn:ietf:params:xml:ns:xmpp-tls}proceed', 'tls_proceed_handler');
+		$this->addXPathHandler('{jabber:client}message', 'message_handler');
+		$this->addXPathHandler('{jabber:client}presence', 'presence_handler');
+		$this->addXPathHandler('iq/{jabber:iq:roster}query', 'roster_iq_handler');
 	}
 
 	/**
@@ -134,6 +143,20 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 	 */
 	public function autoSubscribe($autoSubscribe = true) {
 		$this->auto_subscribe = $autoSubscribe;
+	}
+
+	/**
+	 * Specialized addHandler for iq packets
+	 *
+	 * @param string $tagname
+	 * @param string $ns
+	 * @param string $pointer
+	 * @param string $obj
+	 */
+	public function addIqHandler($tagname, $ns, $pointer, $obj = null) {
+		#TODO make this use addXPathHandler once that's written
+		# {jabber:client}iq/{$ns}$tagname
+		//$this->addHandler('iq', $ns, $pointer, $obj, 2);
 	}
 
 	/**
@@ -218,6 +241,8 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 		$payload['show'] = (isset($xml->sub('show')->data)) ? $xml->sub('show')->data : $payload['type'];
 		$payload['from'] = $xml->attrs['from'];
 		$payload['status'] = (isset($xml->sub('status')->data)) ? $xml->sub('status')->data : '';
+		$payload['priority'] = (isset($xml->sub('priority')->data)) ? intval($xml->sub('priority')->data) : 0;
+		$this->roster->setPresence($payload['from'], $payload['priority'], $payload['show'], $payload['status']);
 		$this->log->log("Presence: {$payload['from']} [{$payload['show']}] {$payload['status']}",  XMPPHP_Log::LEVEL_DEBUG);
 		if(array_key_exists('type', $xml->attrs) and $xml->attrs['type'] == 'subscribe') {
 			if($this->auto_subscribe) {
@@ -300,17 +325,46 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 	*/
 	public function getRoster() {
 		$id = $this->getID();
-		$this->addIdHandler($id, 'roster_get_handler');
 		$this->send("<iq xmlns='jabber:client' type='get' id='$id'><query xmlns='jabber:iq:roster' /></iq>");
 	}
 
 	/**
-	* Roster retrieval handler
+	* Roster iq handler
+	* Gets all packets matching XPath "iq/{jabber:iq:roster}query'
 	*
 	* @param string $xml
 	*/
-	protected function roster_get_handler($xml) {
+	protected function roster_iq_handler($xml) {
 		// TODO: make this work
+		// TODO: reply if it's a type='set'
+		$status = "result";
+		$xmlroster = $xml->sub('query');
+		foreach($xmlroster->subs as $item) {
+			$groups = array();
+			if ($item->name == 'item') {
+				$jid = $item->attrs['jid']; //REQUIRED
+				$name = $item->attrs['name']; //MAY
+				$subscription = $item->attrs['subscription'];
+				foreach($item->subs as $subitem) {
+					if ($subitem->name == 'group') {
+						$groups[] = $subitem->data;
+					}
+				}
+				$contacts[] = array($jid, $subscription, $name, $groups); //Store for action if no errors happen
+			} else {
+				$status = "error";
+			}
+		}
+		if ($status == "result") { //No errors, add contacts
+			foreach($contacts as $contact) {
+				$this->roster->addContact($contact[0], $contact[1], $contact[2], $contact[3]);
+			}
+		}
+		if ($xml->attrs['type'] == 'set' and $status == 'result') {
+			#TODO send back result
+		} elseif ($xml->attrs['type'] == 'set') {
+			#TODO send back error
+		}
 	}
 
 	/**
