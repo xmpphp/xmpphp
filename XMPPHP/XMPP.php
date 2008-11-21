@@ -148,20 +148,6 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 	}
 
 	/**
-	 * Specialized addHandler for iq packets
-	 *
-	 * @param string $tagname
-	 * @param string $ns
-	 * @param string $pointer
-	 * @param string $obj
-	 */
-	public function addIqHandler($tagname, $ns, $pointer, $obj = null) {
-		#TODO make this use addXPathHandler once that's written
-		# {jabber:client}iq/{$ns}$tagname
-		//$this->addHandler('iq', $ns, $pointer, $obj, 2);
-	}
-
-	/**
 	 * Send XMPP Message
 	 *
 	 * @param string $to
@@ -337,8 +323,6 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 	* @param string $xml
 	*/
 	protected function roster_iq_handler($xml) {
-		// TODO: make this work
-		// TODO: reply if it's a type='set'
 		$status = "result";
 		$xmlroster = $xml->sub('query');
 		foreach($xmlroster->subs as $item) {
@@ -362,10 +346,8 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 				$this->roster->addContact($contact[0], $contact[1], $contact[2], $contact[3]);
 			}
 		}
-		if ($xml->attrs['type'] == 'set' and $status == 'result') {
-			#TODO send back result
-		} elseif ($xml->attrs['type'] == 'set') {
-			#TODO send back error
+		if ($xml->attrs['type'] == 'set') {
+			$this->send("<iq type=\"reply\" id=\"{$xml->attrs['id']}\" to=\"{$xml->attrs['from']}\" />");
 		}
 	}
 
