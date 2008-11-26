@@ -330,6 +330,9 @@ class XMPPHP_XMLStream {
 	 */
 	public function disconnect() {
 		$this->log->log("Disconnecting...",  XMPPHP_Log::LEVEL_VERBOSE);
+		if(false == (bool) $this->socket) {
+			return;
+		}
 		$this->reconnect = false;
 		$this->send($this->stream_end);
 		$this->sent_disconnect = true;
@@ -490,7 +493,7 @@ class XMPPHP_XMLStream {
 			#clean-up old objects
 			#$found = false; #FIXME This didn't appear to be in use --Gar
 			foreach($this->xpathhandlers as $handler) {
-				if (array_key_exists(2, $this->xmlobj)) {
+				if (is_array($this->xmlobj) && array_key_exists(2, $this->xmlobj)) {
 					$searchxml = $this->xmlobj[2];
 					$nstag = array_shift($handler[0]);
 					if (($nstag[0] == null or $searchxml->ns == $nstag[0]) and ($nstag[1] == "*" or $nstag[1] == $searchxml->name)) {

@@ -65,7 +65,7 @@ class XMPPHP_BOSH extends XMPPHP_XMPP {
 				$body->addAttribute('to', $this->host);
 				$body->addAttribute('route', "xmpp:{$this->host}:{$this->port}");
 				$body->addAttribute('secure','true');
-				$body->addAttribute('version','1.6');
+				$body->addAttribute('xmpp:version','1.6', 'urn:xmpp:xbosh');
 				$body->addAttribute('wait', strval($wait));
 				$body->addAttribute('ack','1');
 				$body->addAttribute('xmlns:xmpp','urn:xmpp:xbosh');
