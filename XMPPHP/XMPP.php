@@ -89,6 +89,11 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 	protected $use_encryption = true;
 	
 	/**
+	 * @var boolean
+	 */
+	public $track_presence = true;
+	
+	/**
 	 * @var object
 	 */
 	public $roster;
@@ -115,6 +120,7 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 		$this->basejid = $this->user . '@' . $this->host;
 
 		$this->roster = new Roster();
+		$this->track_presence = true;
 
 		$this->stream_start = '<stream:stream to="' . $server . '" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client" version="1.0">';
 		$this->stream_end   = '</stream:stream>';
@@ -230,7 +236,9 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 		$payload['from'] = $xml->attrs['from'];
 		$payload['status'] = (isset($xml->sub('status')->data)) ? $xml->sub('status')->data : '';
 		$payload['priority'] = (isset($xml->sub('priority')->data)) ? intval($xml->sub('priority')->data) : 0;
-		$this->roster->setPresence($payload['from'], $payload['priority'], $payload['show'], $payload['status']);
+		if($this->track_presence) {
+			$this->roster->setPresence($payload['from'], $payload['priority'], $payload['show'], $payload['status']);
+		}
 		$this->log->log("Presence: {$payload['from']} [{$payload['show']}] {$payload['status']}",  XMPPHP_Log::LEVEL_DEBUG);
 		if(array_key_exists('type', $xml->attrs) and $xml->attrs['type'] == 'subscribe') {
 			if($this->auto_subscribe) {
