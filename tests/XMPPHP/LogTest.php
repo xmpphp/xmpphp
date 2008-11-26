@@ -1,6 +1,6 @@
 <?php
 
-require_once dirname(dirname(dirname(__FILE__))) . '/Log.php';
+require_once dirname(dirname(dirname(__FILE__))) . '/XMPPHP/Log.php';
 
 class XMPPHP_LogTest extends PHPUnit_Framework_TestCase
 {
