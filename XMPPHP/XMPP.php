@@ -187,7 +187,7 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 	 * @param string $show
 	 * @param string $to
 	 */
-	public function presence($status = null, $show = 'available', $to = null, $type='available') {
+	public function presence($status = null, $show = 'available', $to = null, $type='available', $priority=0) {
 		if($type == 'available') $type = '';
 		$to	 = htmlspecialchars($to);
 		$status = htmlspecialchars($status);
@@ -202,6 +202,7 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 			$out .= ">";
 			if($show != 'available') $out .= "<show>$show</show>";
 			if($status) $out .= "<status>$status</status>";
+			if($priority) $out .= "<priority>$priority</priority>";
 			$out .= "</presence>";
 		}
 		
@@ -221,6 +222,7 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 		}
 		$payload['from'] = $xml->attrs['from'];
 		$payload['body'] = $xml->sub('body')->data;
+		$payload['xml'] = $xml;
 		$this->log->log("Message: {$xml->sub('body')->data}", XMPPHP_Log::LEVEL_DEBUG);
 		$this->event('message', $payload);
 	}
@@ -236,6 +238,7 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 		$payload['from'] = $xml->attrs['from'];
 		$payload['status'] = (isset($xml->sub('status')->data)) ? $xml->sub('status')->data : '';
 		$payload['priority'] = (isset($xml->sub('priority')->data)) ? intval($xml->sub('priority')->data) : 0;
+		$payload['xml'] = $xml;
 		if($this->track_presence) {
 			$this->roster->setPresence($payload['from'], $payload['priority'], $payload['show'], $payload['status']);
 		}
