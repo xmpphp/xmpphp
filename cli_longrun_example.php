@@ -15,7 +15,7 @@ $vcard_request = array();
 try {
     $conn->connect();
     while(!$conn->isDisconnected()) {
-    	$payloads = $conn->processUntil(array('message', 'presence', 'end_stream', 'session_start'));
+    	$payloads = $conn->processUntil(array('message', 'presence', 'end_stream', 'session_start', 'vcard'));
     	foreach($payloads as $event) {
     		$pl = $event[1];
     		switch($event[0]) {
@@ -26,6 +26,7 @@ try {
     				print $pl['body'] . "\n";
     				print "---------------------------------------------------------------------------------\n";
     				$conn->message($pl['from'], $body="Thanks for sending me \"{$pl['body']}\".", $type=$pl['type']);
+					$cmd = explode(' ', $pl['body']);
     				if($cmd[0] == 'quit') $conn->disconnect();
     				if($cmd[0] == 'break') $conn->send("</end>");
     				if($cmd[0] == 'vcard') {
