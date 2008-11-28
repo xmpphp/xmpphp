@@ -45,12 +45,12 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 	/**
 	 * @var string
 	 */
-	protected $server;
+	public $server;
 
 	/**
 	 * @var string
 	 */
-	protected $user;
+	public $user;
 	
 	/**
 	 * @var string
@@ -379,5 +379,42 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 		$this->log->log("Starting TLS encryption");
 		stream_socket_enable_crypto($this->socket, true, STREAM_CRYPTO_METHOD_SSLv23_CLIENT);
 		$this->reset();
+	}
+
+	/**
+	* Retrieves the vcard
+	*
+	*/
+	public function getVCard($jid = Null) {
+		$id = $this->getID();
+		$this->addIdHandler($id, 'vcard_get_handler');
+		if($jid) {
+			$this->send("<iq type='get' id='$id' to='$jid'><vCard xmlns='vcard-temp' /></iq>");
+		} else {
+			$this->send("<iq type='get' id='$id'><vCard xmlns='vcard-temp' /></iq>");
+		}
+	}
+
+	/**
+	* VCard retrieval handler
+	*
+	* @param XML Object $xml
+	*/
+	protected function vcard_get_handler($xml) {
+		$vcard_array = array();
+		$vcard = $xml->sub('vcard');
+		// go through all of the sub elements and add them to the vcard array
+		foreach ($vcard->subs as $sub) {
+			if ($sub->subs) {
+				$vcard_array[$sub->name] = array();
+				foreach ($sub->subs as $sub_child) {
+					$vcard_array[$sub->name][$sub_child->name] = $sub_child->data;
+				}
+			} else {
+				$vcard_array[$sub->name] = $sub->data;
+			}
+		}
+		$vcard_array['from'] = $xml->attrs['from'];
+		$this->event('vcard', $vcard_array);
 	}
 }

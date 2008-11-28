@@ -31,12 +31,8 @@ documentation on the website.
 
 TODO
 ================================================================================
-* Rosters (I know, a big one)
 * Documentation
-* TLS Cert Inspection (Even possible in PHP?)
 * MUC Support
-* Plugins
-* XML Masking Handlers
 
 License Exception
 ===============================================================================
