@@ -208,6 +208,15 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 		
 		$this->send($out);
 	}
+	/**
+	 * Send Auth request
+	 *
+	 * @param string $jid
+	 */
+	public function subscribe($jid) {
+		$this->send("<presence type='subscribe' to='{$jid}' from='{$this->fulljid}' />");
+		#$this->send("<presence type='subscribed' to='{$jid}' from='{$this->fulljid}' />");
+	}
 
 	/**
 	 * Message handler
