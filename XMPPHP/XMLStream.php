@@ -375,7 +375,7 @@ class XMPPHP_XMLStream {
 	 * integer -> process for this amount of time 
 	 */
 	
-	private function __process($maximum=0) {
+	private function __process($maximum=5) {
 		
 		$remaining = $maximum;
 		
