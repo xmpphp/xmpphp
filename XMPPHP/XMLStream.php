@@ -370,13 +370,18 @@ class XMPPHP_XMLStream {
 
 	/**
 	 * Core reading tool
-	 * 0 -> only read if data is immediately ready
-	 * NULL -> wait forever and ever
-	 * integer -> process for this amount of time 
+	 *
+	 * @param mixed   $maximum Limit when to return
+	 *                         - 0: only read if data is immediately ready
+	 *                         - NULL: wait forever and ever
+	 *                         - integer: process for this amount of milliseconds
+	 * @param boolean $return_when_received Immediately return when data have been
+	 *                                      received
+	 *
+	 * @return boolean True when all goes well, false when something fails
 	 */
-	
-	private function __process($maximum=5) {
-		
+	private function __process($maximum = 5, $return_when_received = false)
+	{
 		$remaining = $maximum;
 		
 		do {
@@ -418,6 +423,9 @@ class XMPPHP_XMLStream {
 				}
 				$this->log->log("RECV: $buff",  XMPPHP_Log::LEVEL_VERBOSE);
 				xml_parse($this->parser, $buff, false);
+				if ($return_when_received) {
+					return true;
+				}
 			} else {
 				# $updated == 0 means no changes during timeout.
 			}
@@ -440,8 +448,11 @@ class XMPPHP_XMLStream {
 	/**
 	 * Process until a timeout occurs
 	 *
-	 * @param integer $timeout
+	 * @param integer $timeout Time in seconds
+	 *
 	 * @return string
+	 *
+	 * @see __process()
 	 */
 	public function processTime($timeout=NULL) {
 		if (is_null($timeout)) {
@@ -454,23 +465,36 @@ class XMPPHP_XMLStream {
 	/**
 	 * Process until a specified event or a timeout occurs
 	 *
-	 * @param string|array $event
-	 * @param integer $timeout
-	 * @return string
+	 * @param string|array $event   Event name or array of event names
+	 * @param integer      $timeout Timeout in seconds
+	 *
+	 * @return array Payload
 	 */
-	public function processUntil($event, $timeout=-1) {
+	public function processUntil($event, $timeout = -1)
+	{
 		$start = time();
-		if(!is_array($event)) $event = array($event);
+		if (!is_array($event)) {
+			$event = array($event);
+		}
+
 		$this->until[] = $event;
 		end($this->until);
 		$event_key = key($this->until);
 		reset($this->until);
+
 		$this->until_count[$event_key] = 0;
 		$updated = '';
-		while(!$this->disconnected and $this->until_count[$event_key] < 1 and (time() - $start < $timeout or $timeout == -1)) {
-			$this->__process();
+		while (!$this->disconnected
+			&& $this->until_count[$event_key] < 1
+			&& ($timeout == -1 || time() - $start < $timeout)
+		) {
+			$maximum = $timeout == -1
+				? NULL
+				: time() - $start;
+			$this->__process($maximum, true);
 		}
-		if(array_key_exists($event_key, $this->until_payload)) {
+
+		if (array_key_exists($event_key, $this->until_payload)) {
 			$payload = $this->until_payload[$event_key];
 			unset($this->until_payload[$event_key]);
 			unset($this->until_count[$event_key]);
@@ -478,6 +502,7 @@ class XMPPHP_XMLStream {
 		} else {
 			$payload = array();
 		}
+
 		return $payload;
 	}
 
