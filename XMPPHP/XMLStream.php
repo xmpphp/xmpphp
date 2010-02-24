@@ -288,9 +288,12 @@ class XMPPHP_XMLStream {
 	/**
 	 * Connect to XMPP Host
 	 *
-	 * @param integer $timeout
+	 * @param integer $timeout    Timeout in seconds
 	 * @param boolean $persistent
-	 * @param boolean $sendinit
+	 * @param boolean $sendinit   Send XMPP starting sequence after connect
+	 *                            automatically
+	 *
+	 * @throws XMPPHP_Exception When the connection fails
 	 */
 	public function connect($timeout = 30, $persistent = false, $sendinit = true) {
 		$this->sent_disconnect = false;
@@ -330,6 +333,10 @@ class XMPPHP_XMLStream {
 
 	/**
 	 * Reconnect XMPP Host
+	 *
+	 * @throws XMPPHP_Exception When the connection fails
+	 * @uses   $reconnectTimeout
+	 * @see    setReconnectTimeout()
 	 */
 	public function doReconnect() {
 		if(!$this->is_server) {
@@ -366,6 +373,41 @@ class XMPPHP_XMLStream {
 	 */
 	public function isDisconnected() {
 		return $this->disconnected;
+	}
+
+	/**
+	 * Checks if the given string is closed with the same tag as it is
+	 * opened. We try to be as fast as possible here.
+	 *
+	 * @param string $buff Read buffer of __process()
+	 *
+	 * @return boolean true if the buffer seems to be complete
+	 */
+	protected function bufferComplete($buff)
+	{
+		if (substr($buff, -1) != '>') {
+			return false;
+		}
+		//we always have a space since the namespace needs to be
+		//declared. could be a tab, though
+		$start = substr($buff, 1, strpos($buff, ' ', 2) - 1);
+		$stop  = substr($buff, -strlen($start) - 3);
+
+		if ($start == '?xml') {
+			//starting with an xml tag. this means a stream is being
+			// opened, which is not much of data, so no fear it's
+			// not complete
+			return true;
+		}
+		if (substr($stop, -2) == '/>') {
+			//one tag, i.e. <success />
+			return true;
+		}
+		if ('</' . $start . '>' == $stop) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -410,18 +452,22 @@ class XMPPHP_XMLStream {
 					return false;
 				}
 			} else if ($updated > 0) {
-				# XXX: Is this big enough?
-				$buff = @fread($this->socket, 4096);
-				if(!$buff) { 
-					if($this->reconnect) {
-						$this->doReconnect();
-					} else {
-						fclose($this->socket);
-						$this->socket = NULL;
-						return false;
+				$buff = '';
+				do {
+					$part = stream_socket_recvfrom($this->socket, 4096);
+					if (!$part) {
+						if($this->reconnect) {
+							$this->doReconnect();
+						} else {
+							fclose($this->socket);
+							$this->socket = NULL;
+							return false;
+						}
 					}
-				}
-				$this->log->log("RECV: $buff",  XMPPHP_Log::LEVEL_VERBOSE);
+					$this->log->log("RECV: $part",  XMPPHP_Log::LEVEL_VERBOSE);
+					$buff .= $part;
+				} while (!$this->bufferComplete($buff));
+
 				xml_parse($this->parser, $buff, false);
 				if ($return_when_received) {
 					return true;
@@ -491,7 +537,10 @@ class XMPPHP_XMLStream {
 			$maximum = $timeout == -1
 				? NULL
 				: time() - $start;
-			$this->__process($maximum, true);
+			$ret = $this->__process($maximum, true);
+			if (!$ret) {
+				break;
+			}
 		}
 
 		if (array_key_exists($event_key, $this->until_payload)) {
