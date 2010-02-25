@@ -127,6 +127,7 @@ class Roster {
 			$this->roster_array[$jid]['presence'][$resource] = array('priority' => $priority, 'show' => $show, 'status' => $status);
 		} else { //Nuke unavailable resources to save memory
 			unset($this->roster_array[$jid]['resource'][$resource]);
+			unset($this->roster_array[$jid]['presence'][$resource]);
 		}
 	}
 
