@@ -416,7 +416,7 @@ class XMPPHP_XMLStream {
 	 * @param mixed   $maximum Limit when to return
 	 *                         - 0: only read if data is immediately ready
 	 *                         - NULL: wait forever and ever
-	 *                         - integer: process for this amount of milliseconds
+	 *                         - integer: process for this amount of microseconds
 	 * @param boolean $return_when_received Immediately return when data have been
 	 *                                      received
 	 *
@@ -536,7 +536,7 @@ class XMPPHP_XMLStream {
 		) {
 			$maximum = $timeout == -1
 				? NULL
-				: time() - $start;
+				: ($timeout - (time() - $start)) * 1000000;
 			$ret = $this->__process($maximum, true);
 			if (!$ret) {
 				break;
