@@ -390,7 +390,10 @@ class XMPPHP_XMLStream {
 		}
 		//we always have a space since the namespace needs to be
 		//declared. could be a tab, though
-		$start = substr($buff, 1, strpos($buff, ' ', 2) - 1);
+		$start = substr(
+			$buff, 1,
+			min(strpos($buff, '>', 2), strpos($buff, ' ', 2)) - 1
+		);
 		$stop  = substr($buff, -strlen($start) - 3);
 
 		if ($start == '?xml') {
