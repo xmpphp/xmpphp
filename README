@@ -3,8 +3,13 @@ About
 XMPPHP is an elegant PHP library for XMPP (aka Jabber, Google Talk, etc).
 
 Homepage: http://code.google.com/p/xmpphp
+This fork: http://github.com/cweiske/xmpphp/
+Chatroom: xmpphp@conference.psi-im.org (XMPP MUC)
+PEAR package: http://pearhub.org/projects/cwXMPPHP/
+
 Author: Nathan Fritz, jabber id: fritzy [at] netflint.net
 Co-Author: Stephan Wentz, jabber id: stephan [at] wentz.it
+Maintainer of this fork: Christian Weiske <cweiske@cweiske.de>
 
 If you have any questions (no matter how dumb), please send me an IM.  I enjoy
 helping people with my code.
@@ -28,6 +33,17 @@ Documentation
 ================================================================================
 For now, look at the examples.  In the near future, I'll have better
 documentation on the website.
+
+Installation
+================================================================================
+Either get the code from github, the last release from google code
+or install the PEAR package from pearhub.org:
+$ pear channel-discover pearhub.org
+$ pear install pearhub/cwXMPPHP
+
+The code on google code is not being actively maintained anymore, so
+don't expect current releases there.
+
 
 TODO
 ================================================================================
