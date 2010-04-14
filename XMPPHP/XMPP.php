@@ -196,7 +196,7 @@ class XMPPHP_XMPP extends XMPPHP_XMLStream {
 		$out = "<presence";
 		if($to) $out .= " to=\"$to\"";
 		if($type) $out .= " type='$type'";
-		if($show == 'available' and !$status) {
+		if($show == 'available' and !$status and !$priority) {
 			$out .= "/>";
 		} else {
 			$out .= ">";
